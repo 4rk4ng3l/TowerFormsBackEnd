@@ -1,0 +1,108 @@
+// Prisma Schema for FormsAlexia
+// Compatible with PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Form {
+  id          String      @id @default(uuid())
+  name        String      @db.VarChar(255)
+  description String?     @db.Text
+  version     Int         @default(1)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  steps       FormStep[]
+  submissions Submission[]
+
+  @@map("forms")
+}
+
+model FormStep {
+  id         String     @id @default(uuid())
+  formId     String     @map("form_id")
+  stepNumber Int        @map("step_number")
+  title      String     @db.VarChar(255)
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  form      Form       @relation(fields: [formId], references: [id], onDelete: Cascade)
+  questions Question[]
+  images    Image[]
+
+  @@map("form_steps")
+}
+
+model Question {
+  id           String   @id @default(uuid())
+  stepId       String   @map("step_id")
+  questionText String   @map("question_text") @db.Text
+  type         String   @db.VarChar(50) // 'text', 'multiple_choice', 'single_choice'
+  options      Json?    // JSON array for multiple choice options
+  isRequired   Boolean  @default(false) @map("is_required")
+  orderNumber  Int      @map("order_number")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  step    FormStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@map("questions")
+}
+
+model Submission {
+  id          String    @id @default(uuid())
+  formId      String    @map("form_id")
+  userId      String?   @map("user_id") @db.VarChar(255)
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  synced      Boolean   @default(false)
+  syncedAt    DateTime? @map("synced_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  form    Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  answers Answer[]
+  images  Image[]
+
+  @@index([synced])
+  @@index([formId])
+  @@map("submissions")
+}
+
+model Answer {
+  id           String   @id @default(uuid())
+  submissionId String   @map("submission_id")
+  questionId   String   @map("question_id")
+  answerValue  Json?    @map("answer_value") // JSON for multiple choice answers
+  answerText   String?  @map("answer_text") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("answers")
+}
+
+model Image {
+  id           String    @id @default(uuid())
+  submissionId String    @map("submission_id")
+  stepId       String    @map("step_id")
+  localPath    String?   @map("local_path") @db.VarChar(512)
+  remotePath   String?   @map("remote_path") @db.VarChar(512)
+  fileName     String    @map("file_name") @db.VarChar(255)
+  fileSize     Int       @map("file_size")
+  mimeType     String    @map("mime_type") @db.VarChar(100)
+  synced       Boolean   @default(false)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  step       FormStep   @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  @@index([synced])
+  @@map("images")
+}
