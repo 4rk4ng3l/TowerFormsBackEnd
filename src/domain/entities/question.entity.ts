@@ -1,5 +1,15 @@
 import { QuestionType } from '../value-objects/question-type.vo';
 
+export interface QuestionMetadata {
+  unit?: string;               // For number questions: "ohms", "meters", etc.
+  minValue?: number;           // For number questions
+  maxValue?: number;           // For number questions
+  fileTypes?: string[];        // For file_upload questions: ["image/*", "video/*", "application/pdf"]
+  maxFileSize?: number;        // For file_upload questions: in bytes
+  placeholder?: string;        // For text/number questions
+  [key: string]: any;          // Allow additional custom metadata
+}
+
 export class Question {
   constructor(
     public readonly id: string,
@@ -9,6 +19,7 @@ export class Question {
     public readonly options: string[] | null,
     public readonly isRequired: boolean,
     public readonly orderNumber: number,
+    public readonly metadata: QuestionMetadata | null,
     public readonly createdAt: Date
   ) {}
 
@@ -19,7 +30,8 @@ export class Question {
     type: QuestionType,
     options: string[] | null,
     isRequired: boolean,
-    orderNumber: number
+    orderNumber: number,
+    metadata: QuestionMetadata | null = null
   ): Question {
     return new Question(
       id,
@@ -29,6 +41,7 @@ export class Question {
       options,
       isRequired,
       orderNumber,
+      metadata,
       new Date()
     );
   }

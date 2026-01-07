@@ -3,6 +3,8 @@ import { BaseException } from '@shared/exceptions/base.exception';
 import { NotFoundException } from '@shared/exceptions/not-found.exception';
 import { ValidationException } from '@shared/exceptions/validation.exception';
 import { SyncException } from '@shared/exceptions/sync.exception';
+import { AuthenticationException } from '@shared/exceptions/authentication.exception';
+import { AuthorizationException } from '@shared/exceptions/authorization.exception';
 import { logger } from '@shared/utils/logger';
 
 export function errorHandler(
@@ -16,6 +18,28 @@ export function errorHandler(
     method: req.method,
     body: req.body
   });
+
+  if (error instanceof AuthenticationException) {
+    res.status(401).json({
+      success: false,
+      error: {
+        code: error.code,
+        message: error.message
+      }
+    });
+    return;
+  }
+
+  if (error instanceof AuthorizationException) {
+    res.status(403).json({
+      success: false,
+      error: {
+        code: error.code,
+        message: error.message
+      }
+    });
+    return;
+  }
 
   if (error instanceof NotFoundException) {
     res.status(404).json({

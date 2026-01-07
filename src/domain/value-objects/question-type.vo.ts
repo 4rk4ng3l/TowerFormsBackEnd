@@ -1,7 +1,11 @@
 export enum QuestionType {
   TEXT = 'text',
   MULTIPLE_CHOICE = 'multiple_choice',
-  SINGLE_CHOICE = 'single_choice'
+  SINGLE_CHOICE = 'single_choice',
+  NUMBER = 'number',
+  DATE = 'date',
+  TIME = 'time',
+  FILE_UPLOAD = 'file_upload'
 }
 
 export class QuestionTypeVO {
@@ -27,6 +31,22 @@ export class QuestionTypeVO {
 
   static singleChoice(): QuestionTypeVO {
     return new QuestionTypeVO(QuestionType.SINGLE_CHOICE);
+  }
+
+  static number(): QuestionTypeVO {
+    return new QuestionTypeVO(QuestionType.NUMBER);
+  }
+
+  static date(): QuestionTypeVO {
+    return new QuestionTypeVO(QuestionType.DATE);
+  }
+
+  static time(): QuestionTypeVO {
+    return new QuestionTypeVO(QuestionType.TIME);
+  }
+
+  static fileUpload(): QuestionTypeVO {
+    return new QuestionTypeVO(QuestionType.FILE_UPLOAD);
   }
 
   getValue(): QuestionType {

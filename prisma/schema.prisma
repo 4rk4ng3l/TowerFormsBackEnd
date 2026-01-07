@@ -11,12 +11,13 @@ datasource db {
 }
 
 model Form {
-  id          String      @id @default(uuid())
-  name        String      @db.VarChar(255)
-  description String?     @db.Text
-  version     Int         @default(1)
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  id             String      @id @default(uuid())
+  name           String      @db.VarChar(255)
+  description    String?     @db.Text
+  version        Int         @default(1)
+  metadataSchema Json?       @map("metadata_schema") // Defines what metadata fields are required: {location: {type: "text", required: true}, siteType: {type: "select", options: [...]} }
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
 
   steps       FormStep[]
   submissions Submission[]
@@ -33,7 +34,7 @@ model FormStep {
 
   form      Form       @relation(fields: [formId], references: [id], onDelete: Cascade)
   questions Question[]
-  images    Image[]
+  files     File[]
 
   @@map("form_steps")
 }
@@ -42,10 +43,11 @@ model Question {
   id           String   @id @default(uuid())
   stepId       String   @map("step_id")
   questionText String   @map("question_text") @db.Text
-  type         String   @db.VarChar(50) // 'text', 'multiple_choice', 'single_choice'
+  type         String   @db.VarChar(50) // 'text', 'multiple_choice', 'single_choice', 'number', 'date', 'time', 'file_upload'
   options      Json?    // JSON array for multiple choice options
   isRequired   Boolean  @default(false) @map("is_required")
   orderNumber  Int      @map("order_number")
+  metadata     Json?    // Additional metadata: validation rules, units, placeholders, file types, etc. {unit: "ohms", maxValue: 5, fileTypes: ["image/*", "video/*"]}
   createdAt    DateTime @default(now()) @map("created_at")
 
   step    FormStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
@@ -57,7 +59,8 @@ model Question {
 model Submission {
   id          String    @id @default(uuid())
   formId      String    @map("form_id")
-  userId      String?   @map("user_id") @db.VarChar(255)
+  userId      String?   @map("user_id")
+  metadata    Json?     // Form-specific metadata values: {location: "CO-BOG0001", siteType: "Greenfield", technicianName: "John Doe", ...}
   startedAt   DateTime  @default(now()) @map("started_at")
   completedAt DateTime? @map("completed_at")
   synced      Boolean   @default(false)
@@ -66,11 +69,13 @@ model Submission {
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   form    Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  user    User?    @relation("UserSubmissions", fields: [userId], references: [id])
   answers Answer[]
-  images  Image[]
+  files   File[]
 
   @@index([synced])
   @@index([formId])
+  @@index([userId])
   @@map("submissions")
 }
 
@@ -88,10 +93,11 @@ model Answer {
   @@map("answers")
 }
 
-model Image {
+model File {
   id           String    @id @default(uuid())
   submissionId String    @map("submission_id")
   stepId       String    @map("step_id")
+  questionId   String?   @map("question_id") // Optional: link to specific question for file uploads
   localPath    String?   @map("local_path") @db.VarChar(512)
   remotePath   String?   @map("remote_path") @db.VarChar(512)
   fileName     String    @map("file_name") @db.VarChar(255)
@@ -104,5 +110,95 @@ model Image {
   step       FormStep   @relation(fields: [stepId], references: [id], onDelete: Cascade)
 
   @@index([synced])
-  @@map("images")
+  @@index([submissionId])
+  @@index([questionId])
+  @@map("files")
+}
+
+// Authentication and Authorization Models
+
+enum UserStatus {
+  PENDING_APPROVAL
+  ACTIVE
+  INACTIVE
+}
+
+model User {
+  id            String       @id @default(uuid())
+  email         String       @unique @db.VarChar(255)
+  passwordHash  String       @map("password_hash") @db.VarChar(255)
+  firstName     String       @map("first_name") @db.VarChar(100)
+  lastName      String       @map("last_name") @db.VarChar(100)
+  status        UserStatus   @default(PENDING_APPROVAL)
+  roleId        String       @map("role_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  approvedAt    DateTime?    @map("approved_at")
+  approvedBy    String?      @map("approved_by")
+  lastLoginAt   DateTime?    @map("last_login_at")
+
+  role          Role         @relation(fields: [roleId], references: [id])
+  approver      User?        @relation("UserApprovals", fields: [approvedBy], references: [id])
+  approvals     User[]       @relation("UserApprovals")
+  submissions   Submission[] @relation("UserSubmissions")
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@index([status])
+  @@index([roleId])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique @db.VarChar(50)
+  description String?  @db.Text
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  resource    String   @db.VarChar(50)
+  action      String   @db.VarChar(50)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  roles       RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  roleId       String   @map("role_id")
+  permissionId String   @map("permission_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique @db.VarChar(500)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("refresh_tokens")
 }
