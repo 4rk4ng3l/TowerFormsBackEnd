@@ -22,6 +22,9 @@ import { AddFileToSubmissionHandler } from './application/commands/files/add-fil
 import { GetFileHandler } from './application/queries/files/get-file.handler';
 import { SyncSubmissionsHandler } from './application/commands/sync/sync-submissions.handler';
 import { GetPendingSyncDataHandler } from './application/queries/sync/get-pending-sync-data.handler';
+import { CreateFormHandler } from './application/commands/forms/create-form.handler';
+import { GetFormHandler } from './application/queries/forms/get-form.handler';
+import { ListFormsHandler } from './application/queries/forms/list-forms.handler';
 import { UserRepository } from './infrastructure/persistence/postgresql/repositories/user.repository';
 import { RoleRepository } from './infrastructure/persistence/postgresql/repositories/role.repository';
 import { PermissionRepository } from './infrastructure/persistence/postgresql/repositories/permission.repository';
@@ -53,6 +56,9 @@ container.registerSingleton(AddFileToSubmissionHandler);
 container.registerSingleton(GetFileHandler);
 container.registerSingleton(SyncSubmissionsHandler);
 container.registerSingleton(GetPendingSyncDataHandler);
+container.registerSingleton(CreateFormHandler);
+container.registerSingleton(GetFormHandler);
+container.registerSingleton(ListFormsHandler);
 
 // Register repositories in DI container
 container.register('IUserRepository', { useClass: UserRepository });
@@ -97,6 +103,7 @@ class Server {
     const authRoutes = require('./infrastructure/http/routes/auth.routes.simple').default;
     const usersRoutes = require('./infrastructure/http/routes/users.routes').default;
     const rolesRoutes = require('./infrastructure/http/routes/roles.routes').default;
+    const formsRoutes = require('./infrastructure/http/routes/forms.routes').default;
     const submissionsRoutes = require('./infrastructure/http/routes/submissions.routes').default;
     const filesRoutes = require('./infrastructure/http/routes/files.routes').default;
     const syncRoutes = require('./infrastructure/http/routes/sync.routes').default;
@@ -104,13 +111,10 @@ class Server {
     this.app.use('/api/auth', authRoutes);
     this.app.use('/api/users', usersRoutes);
     this.app.use('/api/roles', rolesRoutes);
+    this.app.use('/api/forms', formsRoutes);
     this.app.use('/api/submissions', submissionsRoutes);
     this.app.use('/api/files', filesRoutes);
     this.app.use('/api/sync', syncRoutes);
-
-    // TODO: Add more routes after their repositories are implemented
-    // const formsRoutes = require('./infrastructure/http/routes/forms.routes').default;
-    // this.app.use('/api/forms', formsRoutes);
   }
 
   private setupErrorHandling(): void {

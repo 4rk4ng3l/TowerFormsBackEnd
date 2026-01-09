@@ -3,18 +3,32 @@ import { container } from 'tsyringe';
 import { FormsController } from '../controllers/forms.controller';
 
 const router = Router();
-const formsController = container.resolve(FormsController);
 
-router.post('/', (req, res, next) =>
-  formsController.create(req, res).catch(next)
-);
+router.post('/', async (req, res, next) => {
+  try {
+    const formsController = container.resolve(FormsController);
+    await formsController.create(req, res);
+  } catch (error) {
+    next(error);
+  }
+});
 
-router.get('/:id', (req, res, next) =>
-  formsController.getById(req, res).catch(next)
-);
+router.get('/:id', async (req, res, next) => {
+  try {
+    const formsController = container.resolve(FormsController);
+    await formsController.getById(req, res);
+  } catch (error) {
+    next(error);
+  }
+});
 
-router.get('/', (req, res, next) =>
-  formsController.list(req, res).catch(next)
-);
+router.get('/', async (req, res, next) => {
+  try {
+    const formsController = container.resolve(FormsController);
+    await formsController.list(req, res);
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;

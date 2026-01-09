@@ -4,13 +4,16 @@ import { CreateFormCommand } from '@application/commands/forms/create-form.comma
 import { CreateFormHandler } from '@application/commands/forms/create-form.handler';
 import { GetFormQuery } from '@application/queries/forms/get-form.query';
 import { GetFormHandler } from '@application/queries/forms/get-form.handler';
+import { ListFormsQuery } from '@application/queries/forms/list-forms.query';
+import { ListFormsHandler } from '@application/queries/forms/list-forms.handler';
 import { logger } from '@shared/utils/logger';
 
 @injectable()
 export class FormsController {
   constructor(
-    private readonly createFormHandler: CreateFormHandler,
-    private readonly getFormHandler: GetFormHandler
+    @inject(CreateFormHandler) private readonly createFormHandler: CreateFormHandler,
+    @inject(GetFormHandler) private readonly getFormHandler: GetFormHandler,
+    @inject(ListFormsHandler) private readonly listFormsHandler: ListFormsHandler
   ) {}
 
   async create(req: Request, res: Response): Promise<void> {
@@ -38,11 +41,12 @@ export class FormsController {
   }
 
   async list(req: Request, res: Response): Promise<void> {
-    // TODO: Implement ListFormsQuery and handler
+    const query = new ListFormsQuery();
+    const forms = await this.listFormsHandler.handle(query);
+
     res.status(200).json({
       success: true,
-      data: [],
-      message: 'List forms - to be implemented'
+      data: forms
     });
   }
 }
