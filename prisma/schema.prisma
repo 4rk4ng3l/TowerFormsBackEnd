@@ -10,10 +10,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum SiteType {
+  GREENFIELD
+  ROOFTOP  
+  POSTEVIA
+}
+
+// NUEVO: Tabla de Sitios/Instalaciones
+model Site {
+  id          String   @id @default(uuid())
+  code        String   @unique @db.VarChar(20)  // Ej: CO-ATL0031
+  name        String   @db.VarChar(255)         // Nombre completo del sitio
+  siteType    SiteType                          // Tipo: GREENFIELD, ROOFTOP, POSTEVIA
+  region      String?  @db.VarChar(100)         // Opcional: Región/Departamento
+  
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  forms       Form[]   // Relación con formularios
+  
+  @@index([code])
+  @@index([siteType])
+  @@index([isActive])
+  @@map("sites")
+}
+
 model Form {
   id             String      @id @default(uuid())
   name           String      @db.VarChar(255)
   description    String?     @db.Text
+  siteType       SiteType    @default(GREENFIELD)
   version        Int         @default(1)
   metadataSchema Json?       @map("metadata_schema") // Defines what metadata fields are required: {location: {type: "text", required: true}, siteType: {type: "select", options: [...]} }
   createdAt      DateTime    @default(now()) @map("created_at")
