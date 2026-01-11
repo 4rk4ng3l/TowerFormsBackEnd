@@ -16,6 +16,13 @@ export class ValidationException extends BaseException {
     );
   }
 
+  static invalidField(fieldName: string, message: string): ValidationException {
+    return new ValidationException(
+      message,
+      [message]
+    );
+  }
+
   toJSON() {
     return {
       ...super.toJSON(),

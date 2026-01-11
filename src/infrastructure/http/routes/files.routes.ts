@@ -46,4 +46,31 @@ router.get('/:id/download', authorize('files', 'read'), async (req, res, next) =
   }
 });
 
+// GET /api/files/exports/:filename - Serve exported files (no auth required, files expire)
+router.get('/exports/:filename', async (req, res, next) => {
+  try {
+    const path = require('path');
+    const fs = require('fs');
+    const exportsDir = process.env.EXPORTS_DIR || './uploads/exports';
+    const filePath = path.join(exportsDir, req.params.filename);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: 'FILE_NOT_FOUND',
+          message: 'Export file not found or expired'
+        }
+      });
+      return;
+    }
+
+    // Send file
+    res.download(filePath);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
