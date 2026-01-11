@@ -40,7 +40,11 @@ export class FileRepository implements IFileRepository {
 
   async findUnsynced(): Promise<File[]> {
     const files = await this.prisma.file.findMany({
-      where: { synced: false }
+      where: {
+        syncStatus: {
+          in: ['pending', 'failed']
+        }
+      }
     });
 
     return files.map(file => this.toDomain(file));
@@ -73,7 +77,7 @@ export class FileRepository implements IFileRepository {
     const updated = await this.prisma.file.update({
       where: { id },
       data: {
-        synced: true,
+        syncStatus: 'synced',
         remotePath
       }
     });
@@ -85,7 +89,7 @@ export class FileRepository implements IFileRepository {
     const updated = await this.prisma.file.update({
       where: { id },
       data: {
-        synced: false
+        syncStatus: 'failed'
       }
     });
 
@@ -99,7 +103,7 @@ export class FileRepository implements IFileRepository {
   }
 
   private toDomain(data: any): File {
-    const syncStatus = data.synced ? SyncStatus.SYNCED : SyncStatus.PENDING;
+    const syncStatus = data.syncStatus as SyncStatus;
 
     return new File(
       data.id,
@@ -127,7 +131,7 @@ export class FileRepository implements IFileRepository {
       fileName: file.fileName,
       fileSize: file.fileSize,
       mimeType: file.mimeType,
-      synced: file.isSynced(),
+      syncStatus: file.syncStatus.toString(),
       createdAt: file.createdAt
     };
   }

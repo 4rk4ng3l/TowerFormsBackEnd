@@ -2,6 +2,7 @@ import { injectable, inject } from 'tsyringe';
 import { IQueryHandler } from '@shared/interfaces/query-handler.interface';
 import { ListUsersQuery } from './list-users.query';
 import { IUserRepository } from '@domain/repositories/user.repository.interface';
+import { User } from '@domain/entities/user.entity';
 
 export interface UserListItem {
   id: string;
@@ -24,7 +25,7 @@ export class ListUsersHandler implements IQueryHandler<ListUsersQuery, UserListI
   async handle(query: ListUsersQuery): Promise<UserListItem[]> {
     const users = await this.userRepository.findAll();
 
-    return users.map(user => ({
+    return users.map((user: User) => ({
       id: user.id,
       email: user.email.getValue(),
       firstName: user.firstName,

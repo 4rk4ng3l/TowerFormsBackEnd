@@ -3,6 +3,7 @@ import { UserStatus } from '../value-objects/user-status.vo';
 import { IRepository } from '@shared/interfaces/repository.interface';
 
 export interface IUserRepository extends IRepository<User> {
+  findAll(): Promise<User[]>;
   findByEmail(email: string): Promise<User | null>;
   findByStatus(status: UserStatus): Promise<User[]>;
   findByRole(roleId: string): Promise<User[]>;
