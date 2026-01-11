@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { container } from 'tsyringe';
 import { FilesController } from '../controllers/files.controller';
 import { authenticate } from '../middlewares/authentication.middleware';
@@ -16,7 +16,7 @@ router.post(
   authorize('files', 'create'),
   uploadSingleFile,
   handleUploadError,
-  async (req, res, next) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       const filesController = container.resolve(FilesController);
       await filesController.uploadFile(req, res);

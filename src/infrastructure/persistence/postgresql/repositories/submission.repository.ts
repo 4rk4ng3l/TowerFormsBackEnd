@@ -57,7 +57,11 @@ export class SubmissionRepository implements ISubmissionRepository {
 
   async findUnsynced(): Promise<Submission[]> {
     const submissions = await this.prisma.submission.findMany({
-      where: { synced: false },
+      where: {
+        syncStatus: {
+          in: ['pending', 'failed']
+        }
+      },
       include: {
         answers: true,
         files: true
@@ -76,7 +80,7 @@ export class SubmissionRepository implements ISubmissionRepository {
         metadata: submission.metadata as any,
         startedAt: submission.startedAt,
         completedAt: submission.completedAt,
-        synced: submission.isSynced(),
+        syncStatus: submission.syncStatus.toString(),
         syncedAt: submission.syncedAt,
         createdAt: submission.createdAt,
         updatedAt: submission.updatedAt
@@ -97,7 +101,7 @@ export class SubmissionRepository implements ISubmissionRepository {
       data: {
         metadata: submission.metadata as any,
         completedAt: submission.completedAt,
-        synced: submission.isSynced(),
+        syncStatus: submission.syncStatus.toString(),
         syncedAt: submission.syncedAt,
         updatedAt: submission.updatedAt
       },
@@ -149,7 +153,7 @@ export class SubmissionRepository implements ISubmissionRepository {
           fileName: file.fileName,
           fileSize: file.fileSize,
           mimeType: file.mimeType,
-          synced: file.isSynced(),
+          syncStatus: file.syncStatus.toString(),
           createdAt: file.createdAt
         }))
       });
@@ -177,7 +181,7 @@ export class SubmissionRepository implements ISubmissionRepository {
     const updated = await this.prisma.submission.update({
       where: { id },
       data: {
-        synced: true,
+        syncStatus: 'synced',
         syncedAt: new Date()
       },
       include: {
@@ -193,7 +197,7 @@ export class SubmissionRepository implements ISubmissionRepository {
     const updated = await this.prisma.submission.update({
       where: { id },
       data: {
-        synced: false,
+        syncStatus: 'failed',
         syncedAt: null
       },
       include: {
@@ -212,7 +216,7 @@ export class SubmissionRepository implements ISubmissionRepository {
   }
 
   private toDomain(data: any): Submission {
-    const syncStatus = data.synced ? SyncStatus.SYNCED : SyncStatus.PENDING;
+    const syncStatus = data.syncStatus as SyncStatus;
 
     const answers = data.answers?.map((answerData: any) => {
       // Reconstruct AnswerValue from Prisma data
@@ -234,7 +238,7 @@ export class SubmissionRepository implements ISubmissionRepository {
     }) || [];
 
     const files = data.files?.map((fileData: any) => {
-      const fileSyncStatus = fileData.synced ? SyncStatus.SYNCED : SyncStatus.PENDING;
+      const fileSyncStatus = fileData.syncStatus as SyncStatus;
 
       return new File(
         fileData.id,

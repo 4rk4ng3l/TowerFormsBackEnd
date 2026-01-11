@@ -2,15 +2,31 @@ import { injectable, inject } from 'tsyringe';
 import { IQueryHandler } from '@shared/interfaces/query-handler.interface';
 import { ListSubmissionsQuery } from './list-submissions.query';
 import { ISubmissionRepository } from '@domain/repositories/submission.repository.interface';
+import { Submission, SubmissionMetadata } from '@domain/entities/submission.entity';
+
+export interface SubmissionListItem {
+  id: string;
+  formId: string;
+  userId: string | null;
+  metadata: SubmissionMetadata | null;
+  startedAt: Date;
+  completedAt: Date | null;
+  synced: boolean;
+  syncedAt: Date | null;
+  answersCount: number;
+  filesCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 @injectable()
-export class ListSubmissionsHandler implements IQueryHandler<ListSubmissionsQuery, any[]> {
+export class ListSubmissionsHandler implements IQueryHandler<ListSubmissionsQuery, SubmissionListItem[]> {
   constructor(
     @inject('ISubmissionRepository') private readonly submissionRepository: ISubmissionRepository
   ) {}
 
-  async handle(query: ListSubmissionsQuery): Promise<any[]> {
-    let submissions;
+  async handle(query: ListSubmissionsQuery): Promise<SubmissionListItem[]> {
+    let submissions: Submission[];
 
     if (query.formId) {
       submissions = await this.submissionRepository.findByFormId(query.formId);
@@ -21,7 +37,7 @@ export class ListSubmissionsHandler implements IQueryHandler<ListSubmissionsQuer
       submissions = [];
     }
 
-    return submissions.map(submission => ({
+    return submissions.map((submission: Submission) => ({
       id: submission.id,
       formId: submission.formId,
       userId: submission.userId,

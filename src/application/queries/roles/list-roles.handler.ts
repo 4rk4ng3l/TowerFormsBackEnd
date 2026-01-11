@@ -2,6 +2,8 @@ import { injectable, inject } from 'tsyringe';
 import { IQueryHandler } from '@shared/interfaces/query-handler.interface';
 import { ListRolesQuery } from './list-roles.query';
 import { IRoleRepository } from '@domain/repositories/role.repository.interface';
+import { Role } from '@domain/entities/role.entity';
+import { Permission } from '@domain/entities/permission.entity';
 
 export interface RoleWithPermissions {
   id: string;
@@ -26,12 +28,12 @@ export class ListRolesHandler implements IQueryHandler<ListRolesQuery, RoleWithP
   async handle(query: ListRolesQuery): Promise<RoleWithPermissions[]> {
     const roles = await this.roleRepository.findAll();
 
-    return roles.map(role => ({
+    return roles.map((role: Role) => ({
       id: role.id,
       name: role.name,
       description: role.description,
       isSystem: role.isSystem,
-      permissions: role.permissions.map(p => ({
+      permissions: role.permissions.map((p: Permission) => ({
         id: p.id,
         resource: p.resource,
         action: p.action,

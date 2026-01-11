@@ -2,6 +2,7 @@ import { Role } from '../entities/role.entity';
 import { IRepository } from '@shared/interfaces/repository.interface';
 
 export interface IRoleRepository extends IRepository<Role> {
+  findAll(): Promise<Role[]>;
   findByName(name: string): Promise<Role | null>;
   findSystemRoles(): Promise<Role[]>;
   findNonSystemRoles(): Promise<Role[]>;
