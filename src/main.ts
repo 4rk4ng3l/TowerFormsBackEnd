@@ -13,6 +13,8 @@ import { AnswerValidationService } from './domain/services/answer-validation.ser
 import { PasswordHashingService } from './domain/services/password-hashing.service';
 import { TokenService } from './domain/services/token.service';
 import { AuthorizationService } from './domain/services/authorization.service';
+import { ExcelGeneratorService } from './domain/services/excel-generator.service';
+import { ZipGeneratorService } from './domain/services/zip-generator.service';
 import { CreateSubmissionHandler } from './application/commands/submissions/create-submission.handler';
 import { UpdateSubmissionHandler } from './application/commands/submissions/update-submission.handler';
 import { CompleteSubmissionHandler } from './application/commands/submissions/complete-submission.handler';
@@ -25,6 +27,10 @@ import { GetPendingSyncDataHandler } from './application/queries/sync/get-pendin
 import { CreateFormHandler } from './application/commands/forms/create-form.handler';
 import { GetFormHandler } from './application/queries/forms/get-form.handler';
 import { ListFormsHandler } from './application/queries/forms/list-forms.handler';
+import { GetSubmissionForExportHandler } from './application/queries/export/get-submission-for-export.handler';
+import { ExportSubmissionExcelHandler } from './application/commands/export/export-submission-excel.handler';
+import { ExportStepImagesHandler } from './application/commands/export/export-step-images.handler';
+import { ExportSubmissionPackageHandler } from './application/commands/export/export-submission-package.handler';
 import { UserRepository } from './infrastructure/persistence/postgresql/repositories/user.repository';
 import { RoleRepository } from './infrastructure/persistence/postgresql/repositories/role.repository';
 import { PermissionRepository } from './infrastructure/persistence/postgresql/repositories/permission.repository';
@@ -45,6 +51,8 @@ container.registerSingleton(AnswerValidationService);
 container.registerSingleton(PasswordHashingService);
 container.registerSingleton(TokenService);
 container.registerSingleton(AuthorizationService);
+container.registerSingleton(ExcelGeneratorService);
+container.registerSingleton(ZipGeneratorService);
 
 // Register command and query handlers
 container.registerSingleton(CreateSubmissionHandler);
@@ -59,6 +67,10 @@ container.registerSingleton(GetPendingSyncDataHandler);
 container.registerSingleton(CreateFormHandler);
 container.registerSingleton(GetFormHandler);
 container.registerSingleton(ListFormsHandler);
+container.registerSingleton(GetSubmissionForExportHandler);
+container.registerSingleton(ExportSubmissionExcelHandler);
+container.registerSingleton(ExportStepImagesHandler);
+container.registerSingleton(ExportSubmissionPackageHandler);
 
 // Register repositories in DI container
 container.register('IUserRepository', { useClass: UserRepository });
@@ -107,6 +119,7 @@ class Server {
     const submissionsRoutes = require('./infrastructure/http/routes/submissions.routes').default;
     const filesRoutes = require('./infrastructure/http/routes/files.routes').default;
     const syncRoutes = require('./infrastructure/http/routes/sync.routes').default;
+    const exportRoutes = require('./infrastructure/http/routes/export.routes').default;
 
     this.app.use('/api/auth', authRoutes);
     this.app.use('/api/users', usersRoutes);
@@ -115,6 +128,7 @@ class Server {
     this.app.use('/api/submissions', submissionsRoutes);
     this.app.use('/api/files', filesRoutes);
     this.app.use('/api/sync', syncRoutes);
+    this.app.use('/api/export', exportRoutes);
   }
 
   private setupErrorHandling(): void {
