@@ -19,7 +19,7 @@ async function main() {
       metadata: s.metadata,
       startedAt: s.startedAt,
       completedAt: s.completedAt,
-      synced: s.synced,
+      synced: s.syncStatus,
       answersCount: s.answers.length,
       filesCount: s.files.length
     }))

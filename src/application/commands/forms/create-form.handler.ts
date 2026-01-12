@@ -49,7 +49,7 @@ export class CreateFormHandler implements ICommandHandler<CreateFormCommand, For
       steps.push(step);
     }
 
-    let form = Form.create(formId, command.name, command.description, 1);
+    let form = Form.create(formId, command.name, command.description, null, 'GREENFIELD', 1);
     steps.forEach(s => {
       form = form.addStep(s);
     });

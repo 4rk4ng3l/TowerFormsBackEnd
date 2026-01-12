@@ -40,15 +40,18 @@ model Form {
   id             String      @id @default(uuid())
   name           String      @db.VarChar(255)
   description    String?     @db.Text
+  siteId         String?     @map("site_id")
   siteType       SiteType    @default(GREENFIELD)
   version        Int         @default(1)
   metadataSchema Json?       @map("metadata_schema") // Defines what metadata fields are required: {location: {type: "text", required: true}, siteType: {type: "select", options: [...]} }
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
+  site        Site?        @relation(fields: [siteId], references: [id])
   steps       FormStep[]
   submissions Submission[]
 
+  @@index([siteId])
   @@map("forms")
 }
 

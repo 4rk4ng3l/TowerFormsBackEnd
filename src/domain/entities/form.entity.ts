@@ -9,11 +9,15 @@ export interface FormMetadataSchema {
   };
 }
 
+export type SiteType = 'GREENFIELD' | 'ROOFTOP' | 'POSTEVIA';
+
 export class Form {
   constructor(
     public readonly id: string,
     public readonly name: string,
     public readonly description: string | null,
+    public readonly siteId: string | null,
+    public readonly siteType: SiteType,
     public readonly version: number,
     public readonly metadataSchema: FormMetadataSchema | null,
     public readonly steps: FormStep[],
@@ -25,6 +29,8 @@ export class Form {
     id: string,
     name: string,
     description: string | null,
+    siteId: string | null = null,
+    siteType: SiteType = 'GREENFIELD',
     version: number = 1,
     metadataSchema: FormMetadataSchema | null = null
   ): Form {
@@ -32,6 +38,8 @@ export class Form {
       id,
       name,
       description,
+      siteId,
+      siteType,
       version,
       metadataSchema,
       [],
@@ -45,6 +53,8 @@ export class Form {
       this.id,
       this.name,
       this.description,
+      this.siteId,
+      this.siteType,
       this.version,
       this.metadataSchema,
       [...this.steps, step],
@@ -58,6 +68,8 @@ export class Form {
       this.id,
       this.name,
       this.description,
+      this.siteId,
+      this.siteType,
       this.version + 1,
       this.metadataSchema,
       this.steps,

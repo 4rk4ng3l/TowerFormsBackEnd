@@ -1,7 +1,7 @@
 import { injectable, inject } from 'tsyringe';
 import { PrismaClient } from '@prisma/client';
 import { IFormRepository } from '@domain/repositories/form.repository.interface';
-import { Form, FormMetadataSchema } from '@domain/entities/form.entity';
+import { Form, FormMetadataSchema, SiteType } from '@domain/entities/form.entity';
 import { FormStep } from '@domain/entities/form-step.entity';
 import { Question, QuestionMetadata } from '@domain/entities/question.entity';
 import { QuestionType } from '@domain/value-objects/question-type.vo';
@@ -75,6 +75,8 @@ export class FormRepository implements IFormRepository {
       data: {
         name: form.name,
         description: form.description,
+        siteId: form.siteId,
+        siteType: form.siteType,
         version: form.version,
         metadataSchema: form.metadataSchema as any,
         updatedAt: form.updatedAt
@@ -156,6 +158,8 @@ export class FormRepository implements IFormRepository {
       data.id,
       data.name,
       data.description,
+      data.siteId,
+      data.siteType as SiteType,
       data.version,
       data.metadataSchema as FormMetadataSchema | null,
       steps,
@@ -169,6 +173,8 @@ export class FormRepository implements IFormRepository {
       id: form.id,
       name: form.name,
       description: form.description,
+      siteId: form.siteId,
+      siteType: form.siteType,
       version: form.version,
       metadataSchema: form.metadataSchema as any,
       createdAt: form.createdAt,
