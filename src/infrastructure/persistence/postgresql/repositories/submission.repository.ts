@@ -39,7 +39,7 @@ export class SubmissionRepository implements ISubmissionRepository {
       orderBy: { createdAt: 'desc' }
     });
 
-    return submissions.map(submission => this.toDomain(submission));
+    return submissions.map((submission: any) => this.toDomain(submission));
   }
 
   async findByUserId(userId: string): Promise<Submission[]> {
@@ -52,7 +52,7 @@ export class SubmissionRepository implements ISubmissionRepository {
       orderBy: { createdAt: 'desc' }
     });
 
-    return submissions.map(submission => this.toDomain(submission));
+    return submissions.map((submission: any) => this.toDomain(submission));
   }
 
   async findUnsynced(): Promise<Submission[]> {
@@ -68,7 +68,7 @@ export class SubmissionRepository implements ISubmissionRepository {
       }
     });
 
-    return submissions.map(submission => this.toDomain(submission));
+    return submissions.map((submission: any) => this.toDomain(submission));
   }
 
   async create(submission: Submission): Promise<Submission> {
