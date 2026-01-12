@@ -31,19 +31,39 @@ export class SyncSubmissionsHandler implements ICommandHandler<SyncSubmissionsCo
       errors: []
     };
 
+    logger.info('Starting sync process', { submissionCount: command.submissions.length });
+
     for (const submissionDto of command.submissions) {
       try {
+        logger.info('Syncing submission', {
+          submissionId: submissionDto.id,
+          fileCount: submissionDto.files.length,
+          answerCount: submissionDto.answers.length
+        });
+
         await this.syncSubmission(submissionDto);
         result.syncedSubmissions++;
         result.syncedFiles += submissionDto.files.length;
+
+        logger.info('Submission synced successfully', { submissionId: submissionDto.id });
       } catch (error: any) {
-        logger.error('Error syncing submission', { submissionId: submissionDto.id, error: error.message });
+        logger.error('Error syncing submission', {
+          submissionId: submissionDto.id,
+          error: error.message,
+          stack: error.stack
+        });
         result.errors.push({
           submissionId: submissionDto.id,
-          error: error.message
+          error: error.message || 'Unknown error occurred'
         });
       }
     }
+
+    logger.info('Sync process completed', {
+      syncedSubmissions: result.syncedSubmissions,
+      syncedFiles: result.syncedFiles,
+      failedSubmissions: result.errors.length
+    });
 
     return result;
   }

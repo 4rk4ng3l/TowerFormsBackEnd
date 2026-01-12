@@ -98,8 +98,9 @@ class Server {
     this.app.use(cors({
       origin: process.env.CORS_ORIGIN?.split(',') || '*'
     }));
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
+    // Increase payload size limit for file uploads (base64) - 50MB
+    this.app.use(express.json({ limit: '50mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '50mb' }));
   }
 
   private setupRoutes(): void {
