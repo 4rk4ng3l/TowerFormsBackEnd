@@ -48,7 +48,7 @@ export class FormRepository implements IFormRepository {
       }
     });
 
-    return forms.map(form => this.toDomain(form));
+    return forms.map((form: any) => this.toDomain(form));
   }
 
   async create(form: Form): Promise<Form> {
@@ -117,7 +117,7 @@ export class FormRepository implements IFormRepository {
       }
     });
 
-    return forms.map(form => this.toDomain(form));
+    return forms.map((form: any) => this.toDomain(form));
   }
 
   async exists(id: string): Promise<boolean> {

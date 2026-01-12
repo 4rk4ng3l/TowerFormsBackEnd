@@ -38,7 +38,7 @@ export class RefreshTokenRepository implements IRefreshTokenRepository {
       where: { userId }
     });
 
-    return tokens.map(token => this.toDomain(token));
+    return tokens.map((token: any) => this.toDomain(token));
   }
 
   async findActiveByUserId(userId: string): Promise<RefreshToken[]> {
@@ -52,7 +52,7 @@ export class RefreshTokenRepository implements IRefreshTokenRepository {
       }
     });
 
-    return tokens.map(token => this.toDomain(token));
+    return tokens.map((token: any) => this.toDomain(token));
   }
 
   async create(entity: RefreshToken): Promise<RefreshToken> {

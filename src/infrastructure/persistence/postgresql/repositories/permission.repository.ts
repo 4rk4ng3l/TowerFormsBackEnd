@@ -26,7 +26,7 @@ export class PermissionRepository implements IPermissionRepository {
       where: { resource }
     });
 
-    return permissions.map(permission => this.toDomain(permission));
+    return permissions.map((permission: any) => this.toDomain(permission));
   }
 
   async findByAction(action: string): Promise<Permission[]> {
@@ -34,7 +34,7 @@ export class PermissionRepository implements IPermissionRepository {
       where: { action }
     });
 
-    return permissions.map(permission => this.toDomain(permission));
+    return permissions.map((permission: any) => this.toDomain(permission));
   }
 
   async findByResourceAction(resource: string, action: string): Promise<Permission | null> {
@@ -62,7 +62,7 @@ export class PermissionRepository implements IPermissionRepository {
       }
     });
 
-    return rolePermissions.map(rp => this.toDomain(rp.permission));
+    return rolePermissions.map((rp: any) => this.toDomain(rp.permission));
   }
 
   async create(entity: Permission): Promise<Permission> {

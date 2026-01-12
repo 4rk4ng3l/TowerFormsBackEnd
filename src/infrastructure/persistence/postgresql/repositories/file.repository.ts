@@ -27,7 +27,7 @@ export class FileRepository implements IFileRepository {
       where: { submissionId }
     });
 
-    return files.map(file => this.toDomain(file));
+    return files.map((file: any) => this.toDomain(file));
   }
 
   async findByStepId(stepId: string): Promise<File[]> {
@@ -35,7 +35,7 @@ export class FileRepository implements IFileRepository {
       where: { stepId }
     });
 
-    return files.map(file => this.toDomain(file));
+    return files.map((file: any) => this.toDomain(file));
   }
 
   async findUnsynced(): Promise<File[]> {
@@ -47,7 +47,7 @@ export class FileRepository implements IFileRepository {
       }
     });
 
-    return files.map(file => this.toDomain(file));
+    return files.map((file:any) => this.toDomain(file));
   }
 
   async create(file: File): Promise<File> {

@@ -75,7 +75,7 @@ export class UserRepository implements IUserRepository {
       }
     });
 
-    return users.map(user => this.toDomain(user));
+    return users.map((user: any) => this.toDomain(user));
   }
 
   async findByRole(roleId: string): Promise<User[]> {
@@ -94,7 +94,7 @@ export class UserRepository implements IUserRepository {
       }
     });
 
-    return users.map(user => this.toDomain(user));
+    return users.map((user: any) => this.toDomain(user));
   }
 
   async findAll(): Promise<User[]> {
@@ -115,7 +115,7 @@ export class UserRepository implements IUserRepository {
       }
     });
 
-    return users.map(user => this.toDomain(user));
+    return users.map((user: any) => this.toDomain(user));
   }
 
   async create(entity: User): Promise<User> {

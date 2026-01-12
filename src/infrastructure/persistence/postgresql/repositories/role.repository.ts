@@ -60,7 +60,7 @@ export class RoleRepository implements IRoleRepository {
       }
     });
 
-    return roles.map(role => this.toDomain(role));
+    return roles.map((role: any) => this.toDomain(role));
   }
 
   async findNonSystemRoles(): Promise<Role[]> {
@@ -75,7 +75,7 @@ export class RoleRepository implements IRoleRepository {
       }
     });
 
-    return roles.map(role => this.toDomain(role));
+    return roles.map((role: any) => this.toDomain(role));
   }
 
   async findWithPermissions(id: string): Promise<Role | null> {
@@ -96,7 +96,7 @@ export class RoleRepository implements IRoleRepository {
       }
     });
 
-    return roles.map(role => this.toDomain(role));
+    return roles.map((role: any) => this.toDomain(role));
   }
 
   async create(entity: Role): Promise<Role> {
