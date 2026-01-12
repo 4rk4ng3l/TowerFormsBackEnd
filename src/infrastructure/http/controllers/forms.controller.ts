@@ -29,7 +29,7 @@ export class FormsController {
   }
 
   async getById(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const query = new GetFormQuery(id);
     const form = await this.getFormHandler.handle(query);

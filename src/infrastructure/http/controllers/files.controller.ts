@@ -62,7 +62,7 @@ export class FilesController {
   }
 
   async downloadFile(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const query = new GetFileQuery(id);
     const file = await this.getFileHandler.handle(query);
@@ -86,7 +86,7 @@ export class FilesController {
   }
 
   async getFileInfo(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const query = new GetFileQuery(id);
     const file = await this.getFileHandler.handle(query);

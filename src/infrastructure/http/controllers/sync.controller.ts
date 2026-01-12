@@ -39,11 +39,12 @@ export class SyncController {
   }
 
   async getPendingData(req: Request, res: Response): Promise<void> {
-    const { userId, lastSyncDate } = req.query;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+    const lastSyncDate = typeof req.query.lastSyncDate === 'string' ? req.query.lastSyncDate : undefined;
 
     const query = new GetPendingSyncDataQuery(
-      userId as string | undefined,
-      lastSyncDate ? new Date(lastSyncDate as string) : undefined
+      userId,
+      lastSyncDate ? new Date(lastSyncDate) : undefined
     );
 
     const pendingData = await this.getPendingSyncDataHandler.handle(query);
@@ -62,9 +63,9 @@ export class SyncController {
   }
 
   async getStatus(req: Request, res: Response): Promise<void> {
-    const { userId } = req.query;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
-    const query = new GetPendingSyncDataQuery(userId as string | undefined);
+    const query = new GetPendingSyncDataQuery(userId);
     const pendingData = await this.getPendingSyncDataHandler.handle(query);
 
     res.status(200).json({

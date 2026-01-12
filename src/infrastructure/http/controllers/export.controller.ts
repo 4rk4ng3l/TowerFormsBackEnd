@@ -24,7 +24,7 @@ export class ExportController {
    */
   async exportSubmissionExcel(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
 
       const command = new ExportSubmissionExcelCommand(id);
       const result = await this.exportExcelHandler.handle(command);
@@ -53,7 +53,8 @@ export class ExportController {
    */
   async exportStepImages(req: Request, res: Response): Promise<void> {
     try {
-      const { id, stepNumber } = req.params;
+      const id = req.params.id as string;
+      const stepNumber = req.params.stepNumber as string;
       const stepNum = parseInt(stepNumber, 10);
 
       if (isNaN(stepNum) || stepNum < 1) {
@@ -94,7 +95,7 @@ export class ExportController {
    */
   async exportSubmissionPackage(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
 
       const command = new ExportSubmissionPackageCommand(id);
       const result = await this.exportPackageHandler.handle(command);

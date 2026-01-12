@@ -46,7 +46,7 @@ export class SubmissionsController {
   }
 
   async update(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { answers, metadata } = req.body;
 
     const command = new UpdateSubmissionCommand(
@@ -70,7 +70,7 @@ export class SubmissionsController {
   }
 
   async complete(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const command = new CompleteSubmissionCommand(id);
     const submission = await this.completeSubmissionHandler.handle(command);
@@ -86,7 +86,7 @@ export class SubmissionsController {
   }
 
   async getById(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const query = new GetSubmissionQuery(id);
     const submission = await this.getSubmissionHandler.handle(query);
@@ -98,11 +98,12 @@ export class SubmissionsController {
   }
 
   async list(req: Request, res: Response): Promise<void> {
-    const { formId, userId } = req.query;
+    const formId = typeof req.query.formId === 'string' ? req.query.formId : undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
     const query = new ListSubmissionsQuery(
-      formId as string | undefined,
-      userId as string | undefined
+      formId,
+      userId
     );
 
     const submissions = await this.listSubmissionsHandler.handle(query);

@@ -48,7 +48,7 @@ export class UsersController {
   }
 
   async getById(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const query = new GetUserQuery(id);
     const user = await this.getUserHandler.handle(query);
@@ -87,7 +87,7 @@ export class UsersController {
   }
 
   async approve(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const approverId = req.user!.userId;
 
     const command = new ApproveUserCommand(id, approverId);
@@ -109,7 +109,7 @@ export class UsersController {
   }
 
   async changePassword(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { newPassword } = req.body;
 
     const command = new ChangeUserPasswordCommand(id, newPassword);
@@ -122,7 +122,7 @@ export class UsersController {
   }
 
   async updateStatus(req: Request, res: Response): Promise<void> {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { status } = req.body;
 
     const command = new UpdateUserStatusCommand(id, status);
