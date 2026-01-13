@@ -40,7 +40,8 @@ import { FormRepository } from './infrastructure/persistence/postgresql/reposito
 import { FileRepository } from './infrastructure/persistence/postgresql/repositories/file.repository';
 
 // Load environment variables
-dotenv.config();
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+dotenv.config({ path: envFile });
 
 // Register PrismaClient in DI container
 container.registerInstance('PrismaClient', prisma);
