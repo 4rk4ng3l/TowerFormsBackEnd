@@ -33,8 +33,8 @@ export class ListSubmissionsHandler implements IQueryHandler<ListSubmissionsQuer
     } else if (query.userId) {
       submissions = await this.submissionRepository.findByUserId(query.userId);
     } else {
-      // If no filter, return empty array or implement findAll in repository
-      submissions = [];
+      // No filter - return all submissions (for admin users)
+      submissions = await this.submissionRepository.findAll();
     }
 
     return submissions.map((submission: Submission) => ({

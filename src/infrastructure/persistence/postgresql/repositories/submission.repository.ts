@@ -91,7 +91,34 @@ export class SubmissionRepository implements ISubmissionRepository {
       }
     });
 
-    return this.toDomain(created);
+    // Create answers if any
+    if (submission.answers.length > 0) {
+      await this.prisma.answer.createMany({
+        data: submission.answers.map(answer => {
+          const jsonValue = answer.value.toJson();
+          return {
+            id: answer.id,
+            submissionId: answer.submissionId,
+            questionId: answer.questionId,
+            answerValue: jsonValue.choiceValue ? JSON.parse(JSON.stringify(jsonValue.choiceValue)) : null,
+            answerText: jsonValue.textValue,
+            answerComment: answer.comment,
+            createdAt: answer.createdAt
+          };
+        })
+      });
+    }
+
+    // Fetch with answers included
+    const refreshed = await this.prisma.submission.findUnique({
+      where: { id: submission.id },
+      include: {
+        answers: true,
+        files: true
+      }
+    });
+
+    return this.toDomain(refreshed!);
   }
 
   async update(submission: Submission): Promise<Submission> {
@@ -128,6 +155,7 @@ export class SubmissionRepository implements ISubmissionRepository {
             questionId: answer.questionId,
             answerValue: jsonValue.choiceValue ? JSON.parse(JSON.stringify(jsonValue.choiceValue)) : null,
             answerText: jsonValue.textValue,
+            answerComment: answer.comment,
             createdAt: answer.createdAt
           };
         })
@@ -215,6 +243,18 @@ export class SubmissionRepository implements ISubmissionRepository {
     });
   }
 
+  async findAll(): Promise<Submission[]> {
+    const submissions = await this.prisma.submission.findMany({
+      include: {
+        answers: true,
+        files: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return submissions.map((submission: any) => this.toDomain(submission));
+  }
+
   private toDomain(data: any): Submission {
     const syncStatus = data.syncStatus as SyncStatus;
 
@@ -233,6 +273,7 @@ export class SubmissionRepository implements ISubmissionRepository {
         answerData.submissionId,
         answerData.questionId,
         answerValue,
+        answerData.answerComment || null,
         new Date(answerData.createdAt)
       );
     }) || [];

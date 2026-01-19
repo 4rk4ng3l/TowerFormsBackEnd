@@ -50,4 +50,9 @@ export interface ISubmissionRepository {
    * Count submissions by form
    */
   countByFormId(formId: string): Promise<number>;
+
+  /**
+   * Find all submissions (for admin)
+   */
+  findAll(): Promise<Submission[]>;
 }

@@ -6,6 +6,7 @@ export class Answer {
     public readonly submissionId: string,
     public readonly questionId: string,
     public readonly value: AnswerValue,
+    public readonly comment: string | null,
     public readonly createdAt: Date
   ) {}
 
@@ -13,13 +14,15 @@ export class Answer {
     id: string,
     submissionId: string,
     questionId: string,
-    value: AnswerValue
+    value: AnswerValue,
+    comment?: string | null
   ): Answer {
     return new Answer(
       id,
       submissionId,
       questionId,
       value,
+      comment || null,
       new Date()
     );
   }

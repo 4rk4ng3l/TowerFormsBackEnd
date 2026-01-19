@@ -13,6 +13,7 @@ export interface SyncSubmissionDto {
     questionId: string;
     answerText?: string;
     answerValue?: string[];
+    answerComment?: string;
   }>;
   files: Array<{
     id: string;

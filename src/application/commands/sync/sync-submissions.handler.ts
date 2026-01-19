@@ -88,7 +88,8 @@ export class SyncSubmissionsHandler implements ICommandHandler<SyncSubmissionsCo
           answerDto.id,
           dto.id,
           answerDto.questionId,
-          answerValue
+          answerValue,
+          answerDto.answerComment || null
         );
         submission = submission.addAnswer(answer);
       }
@@ -120,7 +121,8 @@ export class SyncSubmissionsHandler implements ICommandHandler<SyncSubmissionsCo
           answerDto.id,
           dto.id,
           answerDto.questionId,
-          answerValue
+          answerValue,
+          answerDto.answerComment || null
         );
         submission = submission.addAnswer(answer);
       }

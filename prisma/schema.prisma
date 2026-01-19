@@ -115,6 +115,7 @@ model Answer {
   questionId   String   @map("question_id")
   answerValue  Json?    @map("answer_value") // JSON for multiple choice answers
   answerText   String?  @map("answer_text") @db.Text
+  answerComment String? @map("answer_comment") @db.VarChar(1028)
   createdAt    DateTime @default(now()) @map("created_at")
 
   submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
