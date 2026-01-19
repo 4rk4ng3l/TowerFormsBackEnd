@@ -50,6 +50,7 @@ export interface SubmissionForExport {
     id: string;
     questionId: string;
     value: any;
+    comment: string | null;
     createdAt: Date;
   }>;
   files: Array<{
@@ -143,6 +144,7 @@ export class GetSubmissionForExportHandler
         id: answer.id,
         questionId: answer.questionId,
         value: answer.getValue(),
+        comment: answer.comment,
         createdAt: answer.createdAt
       })),
       files: submission.files.map(file => ({
