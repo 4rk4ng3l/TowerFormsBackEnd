@@ -1,4 +1,4 @@
-import { PrismaClient, UserStatus } from '@prisma/client';
+import { PrismaClient, UserStatus, SiteType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -232,18 +232,18 @@ async function main() {
       name: 'Mantenimiento Preventivo Torre',
       description: 'Formulario para inspección y mantenimiento preventivo de torres de telecomunicaciones',
       version: 1,
+      siteType: SiteType.GREENFIELD,
       metadataSchema: {
         ubicacion: { type: 'text', required: true, label: 'Ubicación' },
-        tipoSitio: {
-          type: 'select',
-          required: true,
-          label: 'Tipo de Sitio',
-          options: ['Greenfield', 'Rooftop', 'Monopolo', 'Autosoportada']
-        },
         nombreTecnico: { type: 'text', required: true, label: 'Nombre del Técnico' },
         fechaInspeccion: { type: 'date', required: true, label: 'Fecha de Inspección' },
         horaInicio: { type: 'time', required: true, label: 'Hora de Inicio' },
         horaFin: { type: 'time', required: true, label: 'Hora de Finalización' }
+      },
+      sections: {
+        security: { required: true, label: 'Seguridad SST' },
+        inventory: { required: true, label: 'Inventario' },
+        torque: { required: true, label: 'Torque' }
       }
     }
   });
@@ -475,6 +475,209 @@ async function main() {
   });
 
   console.log('Maintenance Preventive Form created successfully');
+
+  // Crear formulario de Inspección Rooftop (sin torque)
+  console.log('Creating Rooftop Inspection Form...');
+
+  await prisma.form.deleteMany({
+    where: { name: 'Inspección Rooftop' }
+  });
+
+  const rooftopForm = await prisma.form.create({
+    data: {
+      name: 'Inspección Rooftop',
+      description: 'Formulario para inspección de sitios en azotea',
+      version: 1,
+      siteType: SiteType.ROOFTOP,
+      metadataSchema: {
+        ubicacion: { type: 'text', required: true, label: 'Ubicación' },
+        nombreTecnico: { type: 'text', required: true, label: 'Nombre del Técnico' },
+        fechaInspeccion: { type: 'date', required: true, label: 'Fecha de Inspección' }
+      },
+      sections: {
+        security: { required: true, label: 'Seguridad SST' },
+        inventory: { required: true, label: 'Inventario' },
+        torque: { required: false }  // No aplica para rooftop
+      }
+    }
+  });
+
+  // Paso 1 para Rooftop: Acceso al Edificio
+  await prisma.formStep.create({
+    data: {
+      formId: rooftopForm.id,
+      title: 'Acceso al Edificio',
+      stepNumber: 1,
+      questions: {
+        create: [
+          {
+            questionText: 'Estado del acceso al edificio',
+            type: 'single_choice',
+            isRequired: true,
+            orderNumber: 1,
+            options: ['Bueno', 'Regular', 'Malo', 'Restringido']
+          },
+          {
+            questionText: 'Estado de la escalera/ascensor',
+            type: 'single_choice',
+            isRequired: true,
+            orderNumber: 2,
+            options: ['Bueno', 'Regular', 'Malo', 'N/A']
+          },
+          {
+            questionText: 'Fotografía del acceso',
+            type: 'file_upload',
+            isRequired: false,
+            orderNumber: 3,
+            metadata: { fileTypes: ['image/jpeg', 'image/png'], maxFileSize: 5242880 }
+          }
+        ]
+      }
+    }
+  });
+
+  // Paso 2 para Rooftop: Inspección de Azotea
+  await prisma.formStep.create({
+    data: {
+      formId: rooftopForm.id,
+      title: 'Inspección de Azotea',
+      stepNumber: 2,
+      questions: {
+        create: [
+          {
+            questionText: 'Estado de la superficie de la azotea',
+            type: 'single_choice',
+            isRequired: true,
+            orderNumber: 1,
+            options: ['Bueno', 'Regular', 'Malo', 'Con filtraciones']
+          },
+          {
+            questionText: 'Estado de los soportes de equipos',
+            type: 'single_choice',
+            isRequired: true,
+            orderNumber: 2,
+            options: ['Bueno', 'Regular', 'Malo', 'Corroído']
+          },
+          {
+            questionText: 'Observaciones generales',
+            type: 'text',
+            isRequired: false,
+            orderNumber: 3
+          },
+          {
+            questionText: 'Fotografías de la azotea',
+            type: 'file_upload',
+            isRequired: false,
+            orderNumber: 4,
+            metadata: { fileTypes: ['image/jpeg', 'image/png'], maxFileSize: 5242880 }
+          }
+        ]
+      }
+    }
+  });
+
+  console.log('Rooftop Inspection Form created successfully');
+
+  // =====================================================
+  // SITIOS E INVENTARIO
+  // =====================================================
+  console.log('Creating sites and inventory...');
+
+  // Datos de sitios extraídos del Excel
+  const sitesData = [
+    { codigoTowernex: "CO-ANT0051", codigoSitio: "ANT1044", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ANT0054", codigoSitio: "ANT7002", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ANT0112", codigoSitio: "ANT7133", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0001", codigoSitio: "ATL0007", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0002", codigoSitio: "ATL0013", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0003", codigoSitio: "ATL0088", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0004", codigoSitio: "ATL0117", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0006", codigoSitio: "ATL0165", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0007", codigoSitio: "ATL0174", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0008", codigoSitio: "ATL0187", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0009", codigoSitio: "ATL0192", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0010", codigoSitio: "ATL7002", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0011", codigoSitio: "ATL8106", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0012", codigoSitio: "BAR0003", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0013", codigoSitio: "BAR0004", contratistaOM: "IENERCOM", siteType: SiteType.ROOFTOP },
+    { codigoTowernex: "CO-ATL0014", codigoSitio: "BAR0005", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0015", codigoSitio: "BAR0006", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0016", codigoSitio: "BAR0009", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0017", codigoSitio: "BAR0014", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+    { codigoTowernex: "CO-ATL0018", codigoSitio: "BAR0019", contratistaOM: "IENERCOM", siteType: SiteType.GREENFIELD },
+  ];
+
+  // Datos de equipos en piso extraídos del Excel
+  const equipmentData = [
+    { codigoTowernex: "CO-ANT0051", idEP: 1, tipoPiso: "GREENFIELD", ubicacionEquipo: "Cabinet Indoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: "TP48200E", fabricante: "HUAWEI" },
+    { codigoTowernex: "CO-ANT0051", idEP: 2, tipoPiso: "GREENFIELD", ubicacionEquipo: "Cabinet Indoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: "TP48200E", fabricante: "HUAWEI" },
+    { codigoTowernex: "CO-ANT0051", idEP: 3, tipoPiso: "GREENFIELD", ubicacionEquipo: "Cabinet Indoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: "RACK OPTICO DMW", fabricante: "SIEMENS" },
+    { codigoTowernex: "CO-ANT0051", idEP: 4, tipoPiso: "GREENFIELD", ubicacionEquipo: "Cabinet Indoor", situacion: "Fuera de servicio", estadoPiso: "BUENO", modelo: "TP48200E", fabricante: "HUAWEI" },
+    { codigoTowernex: "CO-ANT0054", idEP: 1, tipoPiso: "GREENFIELD", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: "CABAN SYSTEMS", fabricante: null },
+    { codigoTowernex: "CO-ANT0112", idEP: 1, tipoPiso: "GREENFIELD", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: null, modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0001", idEP: 1, tipoPiso: null, ubicacionEquipo: null, situacion: "En servicio", estadoPiso: null, modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0002", idEP: 1, tipoPiso: "LOZA CONCRETO", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0002", idEP: 2, tipoPiso: "LOZA CONCRETO", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0003", idEP: 1, tipoPiso: "SILLETA(MONOPOLO)", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "Aceptable", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0004", idEP: 1, tipoPiso: "SOPORTE(TIPO RIEL)", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0006", idEP: 1, tipoPiso: "SOPORTE(TIPO RIEL)", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0007", idEP: 1, tipoPiso: "PLACA DE ENTREPISO", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0008", idEP: 1, tipoPiso: "PLATAFORMA", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0009", idEP: 1, tipoPiso: "PLATAFORMA", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0010", idEP: 1, tipoPiso: "GREENFIELD", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: null, modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0011", idEP: 1, tipoPiso: "GREENFIELD", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "ACEPTABLE", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0012", idEP: 1, tipoPiso: "BANCADA", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0013", idEP: 1, tipoPiso: "ROOFTOP", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0014", idEP: 1, tipoPiso: "REGLETA OUTDOOR", ubicacionEquipo: "Cabinet Outdoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0015", idEP: 1, tipoPiso: "SHELTER", ubicacionEquipo: "Cabinet Indoor", situacion: "En servicio", estadoPiso: "BUENO", modelo: null, fabricante: null },
+    { codigoTowernex: "CO-ATL0016", idEP: 1, tipoPiso: "SHELTER", ubicacionEquipo: "Cabinet Indoor", situacion: "En servicio", estadoPiso: "ACEPTABLE", modelo: null, fabricante: null },
+  ];
+
+  // Limpiar sitios e inventario existentes
+  await prisma.inventoryEP.deleteMany();
+  await prisma.inventoryEE.deleteMany();
+  await prisma.site.deleteMany();
+
+  // Crear sitios
+  const siteIdMap = new Map<string, string>();
+  for (const site of sitesData) {
+    const created = await prisma.site.create({
+      data: {
+        codigoTowernex: site.codigoTowernex,
+        codigoSitio: site.codigoSitio,
+        name: site.codigoTowernex,
+        contratistaOM: site.contratistaOM,
+        siteType: site.siteType,
+        isActive: true,
+      },
+    });
+    siteIdMap.set(site.codigoTowernex, created.id);
+  }
+  console.log(`${sitesData.length} sites created`);
+
+  // Crear equipos en piso
+  let epCreated = 0;
+  for (const ep of equipmentData) {
+    const siteId = siteIdMap.get(ep.codigoTowernex);
+    if (!siteId) continue;
+
+    await prisma.inventoryEP.create({
+      data: {
+        siteId,
+        idEP: ep.idEP,
+        tipoPiso: ep.tipoPiso,
+        ubicacionEquipo: ep.ubicacionEquipo,
+        situacion: ep.situacion,
+        estadoPiso: ep.estadoPiso,
+        modelo: ep.modelo,
+        fabricante: ep.fabricante,
+      },
+    });
+    epCreated++;
+  }
+  console.log(`${epCreated} inventory EP items created`);
+
+  console.log('Sites and inventory created successfully');
 
   console.log('Seed completed successfully!');
 }

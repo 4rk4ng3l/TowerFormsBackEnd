@@ -1,8 +1,11 @@
-import { injectable } from 'tsyringe';
+import { injectable, inject } from 'tsyringe';
 import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs';
 import { SubmissionForExport } from '@application/queries/export/get-submission-for-export.handler';
+import { SiteRepository } from '@infrastructure/persistence/postgresql/repositories/site.repository';
+import { InventoryEE } from '@domain/entities/inventory-ee.entity';
+import { InventoryEP } from '@domain/entities/inventory-ep.entity';
 
 export interface ExcelExportResult {
   url: string;
@@ -14,10 +17,12 @@ export interface ExcelExportResult {
 export class ExcelGeneratorService {
   private readonly exportsDir: string;
   private readonly baseUrl: string;
+  private readonly siteRepository: SiteRepository;
 
   constructor() {
     this.exportsDir = process.env.EXPORTS_DIR || './uploads/exports';
     this.baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    this.siteRepository = new SiteRepository();
 
     // Ensure exports directory exists
     if (!fs.existsSync(this.exportsDir)) {
@@ -34,6 +39,43 @@ export class ExcelGeneratorService {
 
     // Create main sheet following original format
     await this.createMainSheet(workbook, data);
+
+    // Add inventory sheets if site code is available in metadata
+    const metadata = data.submission.metadata || {};
+    const codigoSitio = metadata.codigoSitio || metadata.siteCode;
+
+    if (codigoSitio) {
+      try {
+        const site = await this.siteRepository.findByCode(codigoSitio);
+        if (site) {
+          const [inventoryEE, inventoryEP] = await Promise.all([
+            this.siteRepository.findInventoryEEBySiteId(site.id),
+            this.siteRepository.findInventoryEPBySiteId(site.id)
+          ]);
+
+          if (inventoryEE.length > 0) {
+            await this.createInventoryEESheet(workbook, inventoryEE, codigoSitio);
+          }
+
+          if (inventoryEP.length > 0) {
+            await this.createInventoryEPSheet(workbook, inventoryEP, codigoSitio);
+          }
+        }
+      } catch (error) {
+        console.error('[ExcelGenerator] Error loading site inventory:', error);
+        // Continue without inventory sheets
+      }
+    }
+
+    // Add Torque sheet if torqueData is available in metadata
+    if (metadata.torqueData && Object.keys(metadata.torqueData).length > 0) {
+      try {
+        await this.createTorqueSheet(workbook, metadata.torqueData, codigoSitio || 'N/A');
+      } catch (error) {
+        console.error('[ExcelGenerator] Error creating torque sheet:', error);
+        // Continue without torque sheet
+      }
+    }
 
     // Generate filename
     const timestamp = Date.now();
@@ -415,5 +457,523 @@ export class ExcelGeneratorService {
       .replace(/[^a-zA-Z0-9\s]/g, '')
       .replace(/\s+/g, '_')
       .substring(0, 50);
+  }
+
+  // ============================================
+  // INVENTORY SHEETS
+  // ============================================
+
+  private async createInventoryEESheet(
+    workbook: ExcelJS.Workbook,
+    inventoryEE: InventoryEE[],
+    codigoSitio: string
+  ): Promise<void> {
+    const sheet = workbook.addWorksheet('Inventario EE');
+
+    // Set column widths
+    sheet.columns = [
+      { width: 8, header: 'ID EE' },
+      { width: 15, header: 'Tipo Soporte' },
+      { width: 15, header: 'Tipo EE' },
+      { width: 15, header: 'Situación' },
+      { width: 15, header: 'Modelo' },
+      { width: 15, header: 'Fabricante' },
+      { width: 15, header: 'Arista Cara Mástil' },
+      { width: 18, header: 'Operador Propietario' },
+      { width: 12, header: 'Altura (m)' },
+      { width: 10, header: 'Azimut' },
+      { width: 10, header: 'EPA (m²)' },
+      { width: 12, header: 'Uso Compartido' },
+      { width: 30, header: 'Observaciones' },
+    ];
+
+    // Title row
+    const titleRow = sheet.getRow(1);
+    titleRow.getCell(1).value = `INVENTARIO ELEMENTOS EN ESTRUCTURA - ${codigoSitio}`;
+    sheet.mergeCells('A1:M1');
+    titleRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    titleRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' }
+    };
+    titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    titleRow.height = 30;
+
+    // Header row
+    const headerRow = sheet.getRow(2);
+    headerRow.values = [
+      'ID EE',
+      'Tipo Soporte',
+      'Tipo EE',
+      'Situación',
+      'Modelo',
+      'Fabricante',
+      'Arista Cara Mástil',
+      'Operador Propietario',
+      'Altura (m)',
+      'Azimut',
+      'EPA (m²)',
+      'Uso Compartido',
+      'Observaciones'
+    ];
+    headerRow.font = { bold: true, size: 10 };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFD9E1F2' }
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.eachCell((cell) => {
+      cell.border = this.getThinBorder();
+    });
+
+    // Data rows
+    let currentRow = 3;
+    for (const item of inventoryEE) {
+      const row = sheet.getRow(currentRow);
+      row.values = [
+        item.idEE,
+        item.tipoSoporte || '',
+        item.tipoEE,
+        item.situacion,
+        item.modelo || '',
+        item.fabricante || '',
+        item.aristaCaraMastil || '',
+        item.operadorPropietario || '',
+        item.alturaAntena || '',
+        item.azimut || '',
+        item.epaM2 || '',
+        item.usoCompartido ? 'Sí' : 'No',
+        item.observaciones || ''
+      ];
+
+      row.eachCell((cell) => {
+        cell.border = this.getThinBorder();
+        cell.alignment = { vertical: 'middle', wrapText: true };
+      });
+
+      // Alternate row colors
+      if (currentRow % 2 === 0) {
+        row.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF2F2F2' }
+        };
+      }
+
+      currentRow++;
+    }
+
+    // Footer with totals
+    currentRow++;
+    const footerRow = sheet.getRow(currentRow);
+    footerRow.getCell(1).value = `Total elementos: ${inventoryEE.length}`;
+    footerRow.font = { bold: true, italic: true };
+  }
+
+  private async createInventoryEPSheet(
+    workbook: ExcelJS.Workbook,
+    inventoryEP: InventoryEP[],
+    codigoSitio: string
+  ): Promise<void> {
+    const sheet = workbook.addWorksheet('Inventario EP');
+
+    // Set column widths
+    sheet.columns = [
+      { width: 8, header: 'ID EP' },
+      { width: 15, header: 'Tipo Piso' },
+      { width: 18, header: 'Ubicación Equipo' },
+      { width: 15, header: 'Situación' },
+      { width: 15, header: 'Estado Piso' },
+      { width: 15, header: 'Modelo' },
+      { width: 15, header: 'Fabricante' },
+      { width: 15, header: 'Uso EP' },
+      { width: 18, header: 'Operador Propietario' },
+      { width: 10, header: 'Ancho (m)' },
+      { width: 12, header: 'Profundidad (m)' },
+      { width: 10, header: 'Altura (m)' },
+      { width: 15, header: 'Superficie (m²)' },
+      { width: 30, header: 'Observaciones' },
+    ];
+
+    // Title row
+    const titleRow = sheet.getRow(1);
+    titleRow.getCell(1).value = `INVENTARIO EQUIPOS EN PISO - ${codigoSitio}`;
+    sheet.mergeCells('A1:N1');
+    titleRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    titleRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' }
+    };
+    titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    titleRow.height = 30;
+
+    // Header row
+    const headerRow = sheet.getRow(2);
+    headerRow.values = [
+      'ID EP',
+      'Tipo Piso',
+      'Ubicación Equipo',
+      'Situación',
+      'Estado Piso',
+      'Modelo',
+      'Fabricante',
+      'Uso EP',
+      'Operador Propietario',
+      'Ancho (m)',
+      'Profundidad (m)',
+      'Altura (m)',
+      'Superficie (m²)',
+      'Observaciones'
+    ];
+    headerRow.font = { bold: true, size: 10 };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFD9E1F2' }
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.eachCell((cell) => {
+      cell.border = this.getThinBorder();
+    });
+
+    // Data rows
+    let currentRow = 3;
+    for (const item of inventoryEP) {
+      const row = sheet.getRow(currentRow);
+      row.values = [
+        item.idEP,
+        item.tipoPiso || '',
+        item.ubicacionEquipo || '',
+        item.situacion,
+        item.estadoPiso || '',
+        item.modelo || '',
+        item.fabricante || '',
+        item.usoEP || '',
+        item.operadorPropietario || '',
+        item.ancho || '',
+        item.profundidad || '',
+        item.altura || '',
+        item.superficieOcupada || '',
+        item.observaciones || ''
+      ];
+
+      row.eachCell((cell) => {
+        cell.border = this.getThinBorder();
+        cell.alignment = { vertical: 'middle', wrapText: true };
+      });
+
+      // Alternate row colors
+      if (currentRow % 2 === 0) {
+        row.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF2F2F2' }
+        };
+      }
+
+      currentRow++;
+    }
+
+    // Footer with totals
+    currentRow++;
+    const footerRow = sheet.getRow(currentRow);
+    footerRow.getCell(1).value = `Total equipos: ${inventoryEP.length}`;
+    footerRow.font = { bold: true, italic: true };
+  }
+
+  // ============================================
+  // TORQUE SHEET
+  // ============================================
+
+  private async createTorqueSheet(
+    workbook: ExcelJS.Workbook,
+    torqueData: any,
+    codigoSitio: string
+  ): Promise<void> {
+    const sheet = workbook.addWorksheet('Torque');
+
+    // Franjas definition (same as mobile app)
+    const FRANJAS = [
+      { id: '0-6', label: 'FRANJA 0 - 6 m' },
+      { id: '6-12', label: 'FRANJA 6 - 12 m' },
+      { id: '12-18', label: 'FRANJA 12 - 18 m' },
+      { id: '18-24', label: 'FRANJA 18 - 24 m' },
+      { id: '24-30', label: 'FRANJA 24 - 30 m' },
+      { id: '30-36', label: 'FRANJA 30 - 36 m' },
+      { id: '36-42', label: 'FRANJA 36 - 42 m' },
+      { id: '42-48', label: 'FRANJA 42 - 48 m' },
+      { id: '48-54', label: 'FRANJA 48 - 54 m' },
+      { id: '54-60', label: 'FRANJA 54 - 60 m' },
+    ];
+
+    const ELEMENTO_TYPES = ['MONTANTE', 'DIAGONAL', 'CIERRE', 'ESCALERILLA', 'BRIDA'];
+
+    // Set column widths
+    sheet.columns = [
+      { width: 20, header: 'Franja' },
+      { width: 15, header: 'Elemento' },
+      { width: 15, header: 'Diámetro Tornillo' },
+      { width: 15, header: 'Torque (N·m)' },
+      { width: 18, header: 'Cant. Tornillos' },
+      { width: 12, header: 'No Pasan' },
+      { width: 15, header: '% Cumplimiento' },
+    ];
+
+    // Title row
+    const titleRow = sheet.getRow(1);
+    titleRow.getCell(1).value = `PRUEBAS DE TORQUE - ${codigoSitio}`;
+    sheet.mergeCells('A1:G1');
+    titleRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    titleRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' }
+    };
+    titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    titleRow.height = 30;
+
+    // Reference table header
+    const refHeaderRow = sheet.getRow(2);
+    refHeaderRow.getCell(1).value = 'TABLA DE REFERENCIA DE TORQUES';
+    sheet.mergeCells('A2:G2');
+    refHeaderRow.font = { bold: true, size: 11 };
+    refHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE2EFDA' }
+    };
+    refHeaderRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Reference table data
+    const TORQUE_REFERENCE = [
+      { diametro: 'M16 (5/8")', torqueNm: 50 },
+      { diametro: 'M18 (3/4")', torqueNm: 80 },
+      { diametro: 'M20 (7/8")', torqueNm: 110 },
+      { diametro: 'M22', torqueNm: 140 },
+      { diametro: 'M24 (1")', torqueNm: 180 },
+      { diametro: 'M27 (1-1/8")', torqueNm: 320 },
+      { diametro: 'M30 (1-1/4")', torqueNm: 515 },
+      { diametro: 'M33 (1-3/8")', torqueNm: 775 },
+    ];
+
+    let currentRow = 3;
+    const refStartRow = currentRow;
+
+    // Reference table headers
+    const refColHeaders = sheet.getRow(currentRow);
+    refColHeaders.getCell(1).value = 'Diámetro Tornillo';
+    refColHeaders.getCell(2).value = 'Torque (N·m)';
+    refColHeaders.font = { bold: true, size: 10 };
+    refColHeaders.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFD9E1F2' }
+    };
+    sheet.mergeCells(`C${currentRow}:G${currentRow}`);
+    currentRow++;
+
+    for (const ref of TORQUE_REFERENCE) {
+      const row = sheet.getRow(currentRow);
+      row.getCell(1).value = ref.diametro;
+      row.getCell(2).value = ref.torqueNm;
+      row.getCell(1).border = this.getThinBorder();
+      row.getCell(2).border = this.getThinBorder();
+      currentRow++;
+    }
+
+    // Empty row
+    currentRow++;
+
+    // Data header row
+    const headerRow = sheet.getRow(currentRow);
+    headerRow.values = [
+      'Franja',
+      'Elemento',
+      'Diámetro Tornillo',
+      'Torque (N·m)',
+      'Cant. Tornillos',
+      'No Pasan',
+      '% Cumplimiento'
+    ];
+    headerRow.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' }
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.eachCell((cell) => {
+      cell.border = this.getThinBorder();
+    });
+    currentRow++;
+
+    // Data rows - iterate through franjas and elementos
+    let totalTornillos = 0;
+    let totalNoPasan = 0;
+    let hasData = false;
+
+    for (const franja of FRANJAS) {
+      const franjaData = torqueData[franja.id];
+      if (!franjaData) continue;
+
+      for (const elemento of ELEMENTO_TYPES) {
+        const elementoData = franjaData[elemento];
+        if (!elementoData || !elementoData.tornillos || elementoData.tornillos.length === 0) continue;
+
+        for (const tornillo of elementoData.tornillos) {
+          const cantidad = parseInt(tornillo.cantidadTornillos) || 0;
+          const noPasan = parseInt(tornillo.noPasan) || 0;
+          const porcentaje = cantidad > 0
+            ? (((cantidad - noPasan) / cantidad) * 100).toFixed(1)
+            : '0.0';
+
+          totalTornillos += cantidad;
+          totalNoPasan += noPasan;
+          hasData = true;
+
+          const row = sheet.getRow(currentRow);
+          row.values = [
+            franja.label,
+            elemento,
+            tornillo.diametroTornillo || 'N/A',
+            tornillo.torqueAplicar || 'N/A',
+            cantidad,
+            noPasan,
+            `${porcentaje}%`
+          ];
+
+          row.alignment = { vertical: 'middle', horizontal: 'center' };
+          row.eachCell((cell) => {
+            cell.border = this.getThinBorder();
+          });
+
+          // Color code percentage
+          const percentCell = row.getCell(7);
+          const percentValue = parseFloat(porcentaje);
+          if (percentValue >= 95) {
+            percentCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFC6EFCE' } // Green
+            };
+            percentCell.font = { color: { argb: 'FF006100' }, bold: true };
+          } else if (percentValue >= 80) {
+            percentCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFEB9C' } // Yellow
+            };
+            percentCell.font = { color: { argb: 'FF9C5700' }, bold: true };
+          } else {
+            percentCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFC7CE' } // Red
+            };
+            percentCell.font = { color: { argb: 'FF9C0006' }, bold: true };
+          }
+
+          // Highlight if there are failures
+          if (noPasan > 0) {
+            row.getCell(6).fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFC7CE' }
+            };
+            row.getCell(6).font = { color: { argb: 'FF9C0006' }, bold: true };
+          }
+
+          // Alternate row colors (except special cells)
+          if (currentRow % 2 === 0) {
+            for (let col = 1; col <= 5; col++) {
+              if (!row.getCell(col).fill || (row.getCell(col).fill as any).fgColor?.argb !== 'FFFFC7CE') {
+                row.getCell(col).fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FFF2F2F2' }
+                };
+              }
+            }
+          }
+
+          currentRow++;
+        }
+      }
+    }
+
+    // If no data, add a message
+    if (!hasData) {
+      const noDataRow = sheet.getRow(currentRow);
+      noDataRow.getCell(1).value = 'No hay datos de torque registrados';
+      sheet.mergeCells(`A${currentRow}:G${currentRow}`);
+      noDataRow.alignment = { vertical: 'middle', horizontal: 'center' };
+      noDataRow.font = { italic: true, color: { argb: 'FF666666' } };
+      currentRow++;
+    }
+
+    // Summary row
+    currentRow++;
+    const summaryHeaderRow = sheet.getRow(currentRow);
+    summaryHeaderRow.getCell(1).value = 'RESUMEN GENERAL';
+    sheet.mergeCells(`A${currentRow}:G${currentRow}`);
+    summaryHeaderRow.font = { bold: true, size: 11 };
+    summaryHeaderRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFD9E1F2' }
+    };
+    summaryHeaderRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    currentRow++;
+
+    const totalPorcentaje = totalTornillos > 0
+      ? (((totalTornillos - totalNoPasan) / totalTornillos) * 100).toFixed(1)
+      : '0.0';
+
+    const summaryRow = sheet.getRow(currentRow);
+    summaryRow.values = [
+      'TOTAL',
+      '',
+      '',
+      '',
+      totalTornillos,
+      totalNoPasan,
+      `${totalPorcentaje}%`
+    ];
+    summaryRow.font = { bold: true };
+    summaryRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    summaryRow.eachCell((cell) => {
+      cell.border = this.getThinBorder();
+    });
+
+    // Color code total percentage
+    const totalPercentCell = summaryRow.getCell(7);
+    const totalPercentValue = parseFloat(totalPorcentaje);
+    if (totalPercentValue >= 95) {
+      totalPercentCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFC6EFCE' }
+      };
+      totalPercentCell.font = { color: { argb: 'FF006100' }, bold: true };
+    } else if (totalPercentValue >= 80) {
+      totalPercentCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFEB9C' }
+      };
+      totalPercentCell.font = { color: { argb: 'FF9C5700' }, bold: true };
+    } else {
+      totalPercentCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFC7CE' }
+      };
+      totalPercentCell.font = { color: { argb: 'FF9C0006' }, bold: true };
+    }
+
+    sheet.mergeCells(`A${currentRow}:D${currentRow}`);
   }
 }

@@ -11,6 +11,17 @@ export interface FormMetadataSchema {
 
 export type SiteType = 'GREENFIELD' | 'ROOFTOP' | 'POSTEVIA';
 
+export type SectionType = 'security' | 'inventory' | 'torque';
+
+export interface FormSection {
+  required: boolean;
+  label?: string;
+}
+
+export type FormSections = {
+  [key in SectionType]?: FormSection;
+};
+
 export class Form {
   constructor(
     public readonly id: string,
@@ -20,6 +31,7 @@ export class Form {
     public readonly siteType: SiteType,
     public readonly version: number,
     public readonly metadataSchema: FormMetadataSchema | null,
+    public readonly sections: FormSections | null,
     public readonly steps: FormStep[],
     public readonly createdAt: Date,
     public readonly updatedAt: Date
@@ -32,7 +44,8 @@ export class Form {
     siteId: string | null = null,
     siteType: SiteType = 'GREENFIELD',
     version: number = 1,
-    metadataSchema: FormMetadataSchema | null = null
+    metadataSchema: FormMetadataSchema | null = null,
+    sections: FormSections | null = null
   ): Form {
     return new Form(
       id,
@@ -42,6 +55,7 @@ export class Form {
       siteType,
       version,
       metadataSchema,
+      sections,
       [],
       new Date(),
       new Date()
@@ -57,6 +71,7 @@ export class Form {
       this.siteType,
       this.version,
       this.metadataSchema,
+      this.sections,
       [...this.steps, step],
       this.createdAt,
       this.updatedAt
@@ -72,6 +87,7 @@ export class Form {
       this.siteType,
       this.version + 1,
       this.metadataSchema,
+      this.sections,
       this.steps,
       this.createdAt,
       new Date()

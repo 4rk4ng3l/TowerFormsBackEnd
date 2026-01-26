@@ -54,9 +54,15 @@ export class SyncController {
       data: {
         submissions: pendingData.submissions,
         files: pendingData.files,
+        sites: pendingData.sites,
+        inventoryEE: pendingData.inventoryEE,
+        inventoryEP: pendingData.inventoryEP,
         count: {
           submissions: pendingData.submissions.length,
-          files: pendingData.files.length
+          files: pendingData.files.length,
+          sites: pendingData.sites.length,
+          inventoryEE: pendingData.inventoryEE.length,
+          inventoryEP: pendingData.inventoryEP.length
         }
       }
     });

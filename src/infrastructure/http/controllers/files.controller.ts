@@ -23,7 +23,7 @@ export class FilesController {
       return;
     }
 
-    const { submissionId, stepId, questionId } = req.body;
+    const { submissionId, stepId, questionId, fileId } = req.body;
 
     if (!submissionId || !stepId) {
       // Delete uploaded file if validation fails
@@ -42,7 +42,8 @@ export class FilesController {
       req.file.originalname,
       req.file.path,
       req.file.size,
-      req.file.mimetype
+      req.file.mimetype,
+      fileId || undefined // Optional: use client-provided ID
     );
 
     const file = await this.addFileHandler.handle(command);

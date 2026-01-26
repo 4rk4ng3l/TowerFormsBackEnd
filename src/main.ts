@@ -38,6 +38,7 @@ import { RefreshTokenRepository } from './infrastructure/persistence/postgresql/
 import { SubmissionRepository } from './infrastructure/persistence/postgresql/repositories/submission.repository';
 import { FormRepository } from './infrastructure/persistence/postgresql/repositories/form.repository';
 import { FileRepository } from './infrastructure/persistence/postgresql/repositories/file.repository';
+import { SiteRepository } from './infrastructure/persistence/postgresql/repositories/site.repository';
 
 // Load environment variables
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
@@ -81,6 +82,7 @@ container.register('IRefreshTokenRepository', { useClass: RefreshTokenRepository
 container.register('ISubmissionRepository', { useClass: SubmissionRepository });
 container.register('IFormRepository', { useClass: FormRepository });
 container.register('IFileRepository', { useClass: FileRepository });
+container.register('ISiteRepository', { useClass: SiteRepository });
 
 class Server {
   private app: Application;
@@ -122,6 +124,7 @@ class Server {
     const filesRoutes = require('./infrastructure/http/routes/files.routes').default;
     const syncRoutes = require('./infrastructure/http/routes/sync.routes').default;
     const exportRoutes = require('./infrastructure/http/routes/export.routes').default;
+    const sitesRoutes = require('./infrastructure/http/controllers/sites.controller').default;
 
     this.app.use('/api/auth', authRoutes);
     this.app.use('/api/users', usersRoutes);
@@ -131,6 +134,7 @@ class Server {
     this.app.use('/api/files', filesRoutes);
     this.app.use('/api/sync', syncRoutes);
     this.app.use('/api/export', exportRoutes);
+    this.app.use('/api/sites', sitesRoutes);
   }
 
   private setupErrorHandling(): void {

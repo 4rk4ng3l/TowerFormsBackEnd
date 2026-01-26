@@ -17,6 +17,7 @@
     "migration:run": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
+    "import:inventory": "tsx scripts/import-inventory.ts",
     "deploy": "bash deploy.sh"
   },
   "prisma": {

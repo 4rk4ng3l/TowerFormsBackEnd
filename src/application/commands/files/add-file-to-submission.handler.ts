@@ -21,9 +21,25 @@ export class AddFileToSubmissionHandler implements ICommandHandler<AddFileToSubm
       throw NotFoundException.form(`Submission with ID '${command.submissionId}' not found`);
     }
 
+    // Use provided fileId or generate new one
+    const fileId = command.fileId || uuidv4();
+
+    // Check if file already exists (metadata may have been created during sync)
+    const existingFile = await this.fileRepository.findById(fileId);
+    if (existingFile) {
+      // If file exists but has no local path, update it with the uploaded file path
+      if (!existingFile.localPath) {
+        const updatedFile = existingFile.markAsSynced(command.filePath);
+        await this.fileRepository.update(updatedFile);
+        return updatedFile;
+      }
+      // File already fully synced, return existing
+      return existingFile;
+    }
+
     // Create file entity
     const file = File.create(
-      uuidv4(),
+      fileId,
       command.submissionId,
       command.stepId,
       command.fileName,

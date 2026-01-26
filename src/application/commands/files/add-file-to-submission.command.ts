@@ -12,7 +12,8 @@ export class AddFileToSubmissionCommand implements ICommand {
     public readonly fileName: string,
     public readonly filePath: string,
     public readonly fileSize: number,
-    public readonly mimeType: string
+    public readonly mimeType: string,
+    public readonly fileId?: string // Optional: use client-provided ID for sync
   ) {
     this.commandId = uuidv4();
     this.timestamp = new Date();

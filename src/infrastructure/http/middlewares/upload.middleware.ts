@@ -38,6 +38,8 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
     'video/mp4',
     'video/quicktime',
     'video/x-msvideo',
+    'video/webm',
+    'video/3gpp',
     'application/pdf'
   ];
 
@@ -53,7 +55,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10) // 10MB default
+    fileSize: parseInt(process.env.MAX_FILE_SIZE || '104857600', 10) // 100MB default for video support
   }
 });
 

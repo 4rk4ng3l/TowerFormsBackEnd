@@ -7,9 +7,12 @@ import { File } from '@domain/entities/file.entity';
 import { AnswerValue } from '@domain/value-objects/answer-value.vo';
 import { ISubmissionRepository } from '@domain/repositories/submission.repository.interface';
 import { IFileRepository } from '@domain/repositories/file.repository.interface';
+import { ISiteRepository } from '@domain/repositories/site.repository.interface';
+import { IFormRepository } from '@domain/repositories/form.repository.interface';
 import { logger } from '@shared/utils/logger';
 import fs from 'fs';
 import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 interface SyncResult {
   syncedSubmissions: number;
@@ -21,7 +24,9 @@ interface SyncResult {
 export class SyncSubmissionsHandler implements ICommandHandler<SyncSubmissionsCommand, SyncResult> {
   constructor(
     @inject('ISubmissionRepository') private readonly submissionRepository: ISubmissionRepository,
-    @inject('IFileRepository') private readonly fileRepository: IFileRepository
+    @inject('IFileRepository') private readonly fileRepository: IFileRepository,
+    @inject('ISiteRepository') private readonly siteRepository: ISiteRepository,
+    @inject('IFormRepository') private readonly formRepository: IFormRepository
   ) {}
 
   async handle(command: SyncSubmissionsCommand): Promise<SyncResult> {
@@ -140,6 +145,141 @@ export class SyncSubmissionsHandler implements ICommandHandler<SyncSubmissionsCo
 
     // Sync files
     await this.syncFiles(dto);
+
+    // Sync new inventory elements if present in metadata
+    await this.syncNewInventoryElements(dto);
+  }
+
+  private async syncNewInventoryElements(dto: SyncSubmissionDto): Promise<void> {
+    // Check if metadata has newInventoryElements
+    if (!dto.metadata || !dto.metadata.newInventoryElements) {
+      return;
+    }
+
+    const newElements = dto.metadata.newInventoryElements;
+
+    // Get the form to find the siteId
+    const form = await this.formRepository.findById(dto.formId);
+    if (!form || !form.siteId) {
+      logger.warn('Cannot sync inventory elements: form or siteId not found', {
+        formId: dto.formId,
+        submissionId: dto.id
+      });
+      return;
+    }
+
+    const siteId = form.siteId;
+    logger.info('Syncing new inventory elements', {
+      submissionId: dto.id,
+      siteId,
+      eeCount: newElements.ee?.length || 0,
+      epCount: newElements.ep?.length || 0
+    });
+
+    // Sync EE elements
+    if (newElements.ee && Array.isArray(newElements.ee)) {
+      for (const eeItem of newElements.ee) {
+        try {
+          // Skip if it's not a local element (already exists in DB)
+          if (!eeItem.isLocal && !eeItem.id?.startsWith('local_')) {
+            continue;
+          }
+
+          // Get next idEE for this site
+          const existingEE = await this.siteRepository.findInventoryEEBySiteId(siteId);
+          const nextIdEE = existingEE.length > 0
+            ? Math.max(...existingEE.map(e => e.idEE)) + 1
+            : 1;
+
+          await this.siteRepository.createInventoryEE({
+            siteId,
+            idEE: eeItem.idEE || nextIdEE,
+            tipoSoporte: eeItem.tipoSoporte || null,
+            tipoEE: eeItem.tipoEE,
+            situacion: eeItem.situacion || 'En servicio',
+            situacionRRU: eeItem.situacionRRU || null,
+            modelo: eeItem.modelo || null,
+            fabricante: eeItem.fabricante || null,
+            tipoExposicionViento: eeItem.tipoExposicionViento || null,
+            aristaCaraMastil: eeItem.aristaCaraMastil || null,
+            operadorPropietario: eeItem.operadorPropietario || null,
+            alturaAntena: eeItem.alturaAntena,
+            diametro: eeItem.diametro,
+            largo: eeItem.largo,
+            ancho: eeItem.ancho,
+            fondo: eeItem.fondo,
+            azimut: eeItem.azimut,
+            epaM2: eeItem.epaM2,
+            usoCompartido: eeItem.usoCompartido || false,
+            sistemaMovil: eeItem.sistemaMovil || null,
+            observaciones: eeItem.observaciones || null
+          });
+
+          logger.info('Inventory EE element created', {
+            siteId,
+            tipoEE: eeItem.tipoEE,
+            idEE: eeItem.idEE || nextIdEE
+          });
+        } catch (error: any) {
+          logger.error('Error creating inventory EE element', {
+            error: error.message,
+            eeItem
+          });
+        }
+      }
+    }
+
+    // Sync EP elements
+    if (newElements.ep && Array.isArray(newElements.ep)) {
+      for (const epItem of newElements.ep) {
+        try {
+          // Skip if it's not a local element (already exists in DB)
+          if (!epItem.isLocal && !epItem.id?.startsWith('local_')) {
+            continue;
+          }
+
+          // Get next idEP for this site
+          const existingEP = await this.siteRepository.findInventoryEPBySiteId(siteId);
+          const nextIdEP = existingEP.length > 0
+            ? Math.max(...existingEP.map(e => e.idEP)) + 1
+            : 1;
+
+          // Handle dimensions which might be nested or flat
+          const ancho = epItem.dimensiones?.ancho ?? epItem.ancho ?? null;
+          const profundidad = epItem.dimensiones?.profundidad ?? epItem.profundidad ?? null;
+          const altura = epItem.dimensiones?.altura ?? epItem.altura ?? null;
+
+          await this.siteRepository.createInventoryEP({
+            siteId,
+            idEP: epItem.idEP || nextIdEP,
+            tipoPiso: epItem.tipoPiso || null,
+            ubicacionEquipo: epItem.ubicacionEquipo || null,
+            situacion: epItem.situacion || 'En servicio',
+            estadoPiso: epItem.estadoPiso || null,
+            modelo: epItem.modelo || null,
+            fabricante: epItem.fabricante || null,
+            usoEP: epItem.usoEP || null,
+            operadorPropietario: epItem.operadorPropietario || null,
+            ancho,
+            profundidad,
+            altura,
+            superficieOcupada: epItem.superficieOcupada,
+            observaciones: epItem.observaciones || null
+          });
+
+          logger.info('Inventory EP element created', {
+            siteId,
+            tipoPiso: epItem.tipoPiso,
+            idEP: epItem.idEP || nextIdEP
+          });
+        } catch (error: any) {
+          logger.error('Error creating inventory EP element', {
+            error: error.message,
+            epItem
+          });
+        }
+      }
+    }
   }
 
   private async syncFiles(dto: SyncSubmissionDto): Promise<void> {
@@ -160,7 +300,34 @@ export class SyncSubmissionsHandler implements ICommandHandler<SyncSubmissionsCo
           continue;
         }
 
-        // Decode base64 file data
+        // If no fileData, the file will be uploaded separately via /files/upload
+        // Just create a placeholder entry in the database
+        if (!fileDto.fileData) {
+          logger.info('File metadata received, waiting for separate upload', {
+            fileId: fileDto.id,
+            fileName: fileDto.fileName
+          });
+
+          // Create file entity with pending status (no local path yet)
+          const file = File.create(
+            fileDto.id,
+            dto.id,
+            fileDto.stepId,
+            fileDto.fileName,
+            fileDto.fileSize,
+            fileDto.mimeType,
+            fileDto.questionId || null,
+            null // No local path yet - will be set when file is uploaded
+          );
+
+          // Save to database as pending
+          await this.fileRepository.create(file);
+
+          logger.info('File metadata saved, awaiting upload', { fileId: fileDto.id });
+          continue;
+        }
+
+        // Decode base64 file data (legacy support)
         const fileBuffer = Buffer.from(fileDto.fileData, 'base64');
 
         // Generate file path

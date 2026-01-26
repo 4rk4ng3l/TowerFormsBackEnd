@@ -16,24 +16,116 @@ enum SiteType {
   POSTEVIA
 }
 
-// NUEVO: Tabla de Sitios/Instalaciones
+// Tabla de Sitios/Instalaciones (expandida con datos del Excel)
 model Site {
-  id          String   @id @default(uuid())
-  code        String   @unique @db.VarChar(20)  // Ej: CO-ATL0031
-  name        String   @db.VarChar(255)         // Nombre completo del sitio
-  siteType    SiteType                          // Tipo: GREENFIELD, ROOFTOP, POSTEVIA
-  region      String?  @db.VarChar(100)         // Opcional: Región/Departamento
-  
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id                String   @id @default(uuid())
+  codigoTowernex    String   @unique @map("codigo_towernex") @db.VarChar(20)  // CO-ATL0031
+  codigoSitio       String?  @map("codigo_sitio") @db.VarChar(20)             // ATL0031
+  codIeneCombinado  String?  @map("cod_iene_combinado") @db.VarChar(20)       // Código IENE
+  name              String   @db.VarChar(255)
+  siteType          SiteType @map("site_type")
 
-  forms       Form[]   // Relación con formularios
-  
-  @@index([code])
+  // Ubicación
+  latitud           Decimal? @db.Decimal(10, 6)
+  longitud          Decimal? @db.Decimal(10, 6)
+  direccion         String?  @db.VarChar(500)
+  regional          String?  @db.VarChar(100)
+
+  // Información de gestión
+  contratistaOM     String?  @map("contratista_om") @db.VarChar(255)   // Contratista O&M
+  empresaAuditora   String?  @map("empresa_auditora") @db.VarChar(255)
+  tecnicoEA         String?  @map("tecnico_ea") @db.VarChar(255)       // Técnico EA
+
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  forms             Form[]
+  inventoryEE       InventoryEE[]  // Elementos en Estructura
+  inventoryEP       InventoryEP[]  // Equipos en Piso
+
+  @@index([codigoTowernex])
+  @@index([codigoSitio])
   @@index([siteType])
   @@index([isActive])
   @@map("sites")
+}
+
+// Inventario de Elementos en Estructura (EE) - Antenas, RRUs, MW
+model InventoryEE {
+  id                  String   @id @default(uuid())
+  siteId              String   @map("site_id")
+  idEE                Int      @map("id_ee")                          // Número secuencial en el sitio
+
+  tipoSoporte         String?  @map("tipo_soporte") @db.VarChar(100)  // Torre, Mástil, etc.
+  tipoEE              String   @map("tipo_ee") @db.VarChar(50)        // ANTENA, RRU, MW
+  situacion           String   @default("En servicio") @db.VarChar(50) // En servicio, Fuera de servicio
+  situacionRRU        String?  @map("situacion_rru") @db.VarChar(50)
+  modelo              String?  @db.VarChar(255)
+  fabricante          String?  @db.VarChar(255)
+  tipoExposicionViento String? @map("tipo_exposicion_viento") @db.VarChar(10) // N/T
+
+  // Ubicación en estructura
+  aristaCaraMastil    String?  @map("arista_cara_mastil") @db.VarChar(50) // Arista1, Arista2, Cara1, etc.
+  operadorPropietario String?  @map("operador_propietario") @db.VarChar(100) // TIGO, CLARO, etc.
+  alturaAntena        Decimal? @map("altura_antena") @db.Decimal(8, 4) // Altura en metros
+
+  // Dimensiones
+  diametro            Decimal? @db.Decimal(8, 4)
+  largo               Decimal? @db.Decimal(8, 4)
+  ancho               Decimal? @db.Decimal(8, 4)
+  fondo               Decimal? @db.Decimal(8, 4)
+
+  azimut              Decimal? @db.Decimal(8, 2) // Orientación en grados
+  epaM2               Decimal? @map("epa_m2") @db.Decimal(10, 6) // Área de exposición al viento
+  usoCompartido       Boolean  @default(false) @map("uso_compartido")
+  sistemaMovil        String?  @map("sistema_movil") @db.VarChar(50) // 4G, 5G, LTE, etc.
+
+  observaciones       String?  @db.Text
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  site                Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, idEE])
+  @@index([siteId])
+  @@index([tipoEE])
+  @@map("inventory_ee")
+}
+
+// Inventario de Equipos en Piso (EP) - Cabinets, Generadores, etc.
+model InventoryEP {
+  id                  String   @id @default(uuid())
+  siteId              String   @map("site_id")
+  idEP                Int      @map("id_ep")                          // Número secuencial en el sitio
+
+  tipoPiso            String?  @map("tipo_piso") @db.VarChar(100)     // GREENFIELD, SHELTER, ROOFTOP, etc.
+  ubicacionEquipo     String?  @map("ubicacion_equipo") @db.VarChar(100) // Cabinet Indoor/Outdoor
+  situacion           String   @default("En servicio") @db.VarChar(50) // En servicio, Fuera de servicio
+  estadoPiso          String?  @map("estado_piso") @db.VarChar(50)    // BUENO, ACEPTABLE, MALO, ND
+  modelo              String?  @db.VarChar(255)
+  fabricante          String?  @db.VarChar(255)
+
+  usoEP               String?  @map("uso_ep") @db.VarChar(100)        // RADIO, ENERGIA, etc.
+  operadorPropietario String?  @map("operador_propietario") @db.VarChar(100)
+
+  // Dimensiones
+  ancho               Decimal? @db.Decimal(8, 4)
+  profundidad         Decimal? @db.Decimal(8, 4)
+  altura              Decimal? @db.Decimal(8, 4)
+  superficieOcupada   Decimal? @map("superficie_ocupada") @db.Decimal(10, 4) // m²
+
+  observaciones       String?  @db.Text
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  site                Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, idEP])
+  @@index([siteId])
+  @@index([tipoPiso])
+  @@index([situacion])
+  @@map("inventory_ep")
 }
 
 model Form {
@@ -44,6 +136,7 @@ model Form {
   siteType       SiteType    @default(GREENFIELD)
   version        Int         @default(1)
   metadataSchema Json?       @map("metadata_schema") // Defines what metadata fields are required: {location: {type: "text", required: true}, siteType: {type: "select", options: [...]} }
+  sections       Json?       // Defines which additional sections are required: {security: {required: true, label: "Seguridad"}, inventory: {required: true}, torque: {required: false}}
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
