@@ -27,6 +27,7 @@ interface StepInfo {
   name: string;
   description: string | null;
   order: number;
+  filePrefix: string | null;
   questions: any[];
 }
 
@@ -76,7 +77,9 @@ export class ZipGeneratorService {
     // Generate filenames
     const timestamp = Date.now();
     const sanitizedFormName = this.sanitizeFileName(form.name);
-    const fileName = `${sanitizedFormName}_Step${step.order}_Imagenes.zip`;
+    const sanitizedStepName = this.sanitizeFileName(step.name);
+    const prefix = step.filePrefix || '';
+    const fileName = `${prefix}${sanitizedFormName}_${sanitizedStepName}_${timestamp}.zip`;
     const uniqueFileName = `submission_${submission.id}_step_${step.order}_images_${timestamp}.zip`;
     const filePath = path.join(this.exportsDir, uniqueFileName);
 
@@ -100,22 +103,23 @@ export class ZipGeneratorService {
     const filesByQuestion = this.groupFilesByQuestion(files);
 
     // Add files to archive
+    const filePrefix = step.filePrefix || '';
     for (const [questionId, questionFiles] of Object.entries(filesByQuestion)) {
       const question = this.findQuestion(step, questionId);
       const questionText = question?.text || 'Sin pregunta';
 
       for (let i = 0; i < questionFiles.length; i++) {
         const file = questionFiles[i];
-        const filePath = this.getFilePath(file);
+        const filePathResolved = this.getFilePath(file);
 
-        if (filePath && fs.existsSync(filePath)) {
+        if (filePathResolved && fs.existsSync(filePathResolved)) {
           const ext = path.extname(file.fileName);
           const sanitizedQuestionText = this.sanitizeFileName(questionText);
           const archiveFileName = questionFiles.length > 1
-            ? `${sanitizedQuestionText}_${i + 1}${ext}`
-            : `${sanitizedQuestionText}${ext}`;
+            ? `${filePrefix}${sanitizedQuestionText}_${i + 1}${ext}`
+            : `${filePrefix}${sanitizedQuestionText}${ext}`;
 
-          archive.file(filePath, { name: archiveFileName });
+          archive.file(filePathResolved, { name: archiveFileName });
         }
       }
     }

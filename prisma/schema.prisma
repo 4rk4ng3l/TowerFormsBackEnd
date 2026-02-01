@@ -153,6 +153,7 @@ model FormStep {
   formId     String     @map("form_id")
   stepNumber Int        @map("step_number")
   title      String     @db.VarChar(255)
+  filePrefix String?    @map("file_prefix") @db.VarChar(50)
   createdAt  DateTime   @default(now()) @map("created_at")
 
   form      Form       @relation(fields: [formId], references: [id], onDelete: Cascade)

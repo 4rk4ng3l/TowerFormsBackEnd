@@ -42,7 +42,7 @@ export class CreateFormHandler implements ICommandHandler<CreateFormCommand, For
         questions.push(question);
       }
 
-      let step = FormStep.create(stepId, formId, stepDto.stepNumber, stepDto.title);
+      let step = FormStep.create(stepId, formId, stepDto.stepNumber, stepDto.title, stepDto.filePrefix || null);
       questions.forEach(q => {
         step = step.addQuestion(q);
       });

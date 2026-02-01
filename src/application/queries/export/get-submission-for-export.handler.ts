@@ -30,6 +30,7 @@ export interface SubmissionForExport {
       name: string;
       description: string | null;
       order: number;
+      filePrefix: string | null;
       questions: Array<{
         id: string;
         text: string;
@@ -119,6 +120,7 @@ export class GetSubmissionForExportHandler
           name: step.title,
           description: null,
           order: step.stepNumber,
+          filePrefix: step.filePrefix,
           questions: step.questions.map(q => ({
             id: q.id,
             text: q.questionText,

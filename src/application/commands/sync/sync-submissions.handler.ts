@@ -180,48 +180,77 @@ export class SyncSubmissionsHandler implements ICommandHandler<SyncSubmissionsCo
     if (newElements.ee && Array.isArray(newElements.ee)) {
       for (const eeItem of newElements.ee) {
         try {
-          // Skip if it's not a local element (already exists in DB)
-          if (!eeItem.isLocal && !eeItem.id?.startsWith('local_')) {
-            continue;
+          const isNewElement = eeItem.isLocal || eeItem.id?.startsWith('local_');
+          const isEditedElement = eeItem.isEdited && !isNewElement;
+
+          if (isEditedElement) {
+            // Update existing element
+            await this.siteRepository.updateInventoryEE(eeItem.id, {
+              tipoSoporte: eeItem.tipoSoporte || null,
+              tipoEE: eeItem.tipoEE,
+              situacion: eeItem.situacion || 'En servicio',
+              situacionRRU: eeItem.situacionRRU || null,
+              modelo: eeItem.modelo || null,
+              fabricante: eeItem.fabricante || null,
+              tipoExposicionViento: eeItem.tipoExposicionViento || null,
+              aristaCaraMastil: eeItem.aristaCaraMastil || null,
+              operadorPropietario: eeItem.operadorPropietario || null,
+              alturaAntena: eeItem.alturaAntena,
+              diametro: eeItem.diametro,
+              largo: eeItem.largo,
+              ancho: eeItem.ancho,
+              fondo: eeItem.fondo,
+              azimut: eeItem.azimut,
+              epaM2: eeItem.epaM2,
+              usoCompartido: eeItem.usoCompartido || false,
+              sistemaMovil: eeItem.sistemaMovil || null,
+              observaciones: eeItem.observaciones || null
+            });
+
+            logger.info('Inventory EE element updated', {
+              siteId,
+              id: eeItem.id,
+              tipoEE: eeItem.tipoEE
+            });
+          } else if (isNewElement) {
+            // Create new element
+            const existingEE = await this.siteRepository.findInventoryEEBySiteId(siteId);
+            const nextIdEE = existingEE.length > 0
+              ? Math.max(...existingEE.map(e => e.idEE)) + 1
+              : 1;
+
+            await this.siteRepository.createInventoryEE({
+              siteId,
+              idEE: eeItem.idEE || nextIdEE,
+              tipoSoporte: eeItem.tipoSoporte || null,
+              tipoEE: eeItem.tipoEE,
+              situacion: eeItem.situacion || 'En servicio',
+              situacionRRU: eeItem.situacionRRU || null,
+              modelo: eeItem.modelo || null,
+              fabricante: eeItem.fabricante || null,
+              tipoExposicionViento: eeItem.tipoExposicionViento || null,
+              aristaCaraMastil: eeItem.aristaCaraMastil || null,
+              operadorPropietario: eeItem.operadorPropietario || null,
+              alturaAntena: eeItem.alturaAntena,
+              diametro: eeItem.diametro,
+              largo: eeItem.largo,
+              ancho: eeItem.ancho,
+              fondo: eeItem.fondo,
+              azimut: eeItem.azimut,
+              epaM2: eeItem.epaM2,
+              usoCompartido: eeItem.usoCompartido || false,
+              sistemaMovil: eeItem.sistemaMovil || null,
+              observaciones: eeItem.observaciones || null
+            });
+
+            logger.info('Inventory EE element created', {
+              siteId,
+              tipoEE: eeItem.tipoEE,
+              idEE: eeItem.idEE || nextIdEE
+            });
           }
-
-          // Get next idEE for this site
-          const existingEE = await this.siteRepository.findInventoryEEBySiteId(siteId);
-          const nextIdEE = existingEE.length > 0
-            ? Math.max(...existingEE.map(e => e.idEE)) + 1
-            : 1;
-
-          await this.siteRepository.createInventoryEE({
-            siteId,
-            idEE: eeItem.idEE || nextIdEE,
-            tipoSoporte: eeItem.tipoSoporte || null,
-            tipoEE: eeItem.tipoEE,
-            situacion: eeItem.situacion || 'En servicio',
-            situacionRRU: eeItem.situacionRRU || null,
-            modelo: eeItem.modelo || null,
-            fabricante: eeItem.fabricante || null,
-            tipoExposicionViento: eeItem.tipoExposicionViento || null,
-            aristaCaraMastil: eeItem.aristaCaraMastil || null,
-            operadorPropietario: eeItem.operadorPropietario || null,
-            alturaAntena: eeItem.alturaAntena,
-            diametro: eeItem.diametro,
-            largo: eeItem.largo,
-            ancho: eeItem.ancho,
-            fondo: eeItem.fondo,
-            azimut: eeItem.azimut,
-            epaM2: eeItem.epaM2,
-            usoCompartido: eeItem.usoCompartido || false,
-            sistemaMovil: eeItem.sistemaMovil || null,
-            observaciones: eeItem.observaciones || null
-          });
-
-          logger.info('Inventory EE element created', {
-            siteId,
-            tipoEE: eeItem.tipoEE,
-            idEE: eeItem.idEE || nextIdEE
-          });
         } catch (error: any) {
-          logger.error('Error creating inventory EE element', {
+          logger.error('Error syncing inventory EE element', {
             error: error.message,
             eeItem
           });
@@ -233,47 +262,70 @@ export class SyncSubmissionsHandler implements ICommandHandler<SyncSubmissionsCo
     if (newElements.ep && Array.isArray(newElements.ep)) {
       for (const epItem of newElements.ep) {
         try {
-          // Skip if it's not a local element (already exists in DB)
-          if (!epItem.isLocal && !epItem.id?.startsWith('local_')) {
-            continue;
-          }
-
-          // Get next idEP for this site
-          const existingEP = await this.siteRepository.findInventoryEPBySiteId(siteId);
-          const nextIdEP = existingEP.length > 0
-            ? Math.max(...existingEP.map(e => e.idEP)) + 1
-            : 1;
+          const isNewElement = epItem.isLocal || epItem.id?.startsWith('local_');
+          const isEditedElement = epItem.isEdited && !isNewElement;
 
           // Handle dimensions which might be nested or flat
           const ancho = epItem.dimensiones?.ancho ?? epItem.ancho ?? null;
           const profundidad = epItem.dimensiones?.profundidad ?? epItem.profundidad ?? null;
           const altura = epItem.dimensiones?.altura ?? epItem.altura ?? null;
 
-          await this.siteRepository.createInventoryEP({
-            siteId,
-            idEP: epItem.idEP || nextIdEP,
-            tipoPiso: epItem.tipoPiso || null,
-            ubicacionEquipo: epItem.ubicacionEquipo || null,
-            situacion: epItem.situacion || 'En servicio',
-            estadoPiso: epItem.estadoPiso || null,
-            modelo: epItem.modelo || null,
-            fabricante: epItem.fabricante || null,
-            usoEP: epItem.usoEP || null,
-            operadorPropietario: epItem.operadorPropietario || null,
-            ancho,
-            profundidad,
-            altura,
-            superficieOcupada: epItem.superficieOcupada,
-            observaciones: epItem.observaciones || null
-          });
+          if (isEditedElement) {
+            // Update existing element
+            await this.siteRepository.updateInventoryEP(epItem.id, {
+              tipoPiso: epItem.tipoPiso || null,
+              ubicacionEquipo: epItem.ubicacionEquipo || null,
+              situacion: epItem.situacion || 'En servicio',
+              estadoPiso: epItem.estadoPiso || null,
+              modelo: epItem.modelo || null,
+              fabricante: epItem.fabricante || null,
+              usoEP: epItem.usoEP || null,
+              operadorPropietario: epItem.operadorPropietario || null,
+              ancho,
+              profundidad,
+              altura,
+              superficieOcupada: epItem.superficieOcupada,
+              observaciones: epItem.observaciones || null
+            });
 
-          logger.info('Inventory EP element created', {
-            siteId,
-            tipoPiso: epItem.tipoPiso,
-            idEP: epItem.idEP || nextIdEP
-          });
+            logger.info('Inventory EP element updated', {
+              siteId,
+              id: epItem.id,
+              tipoPiso: epItem.tipoPiso
+            });
+          } else if (isNewElement) {
+            // Create new element
+            const existingEP = await this.siteRepository.findInventoryEPBySiteId(siteId);
+            const nextIdEP = existingEP.length > 0
+              ? Math.max(...existingEP.map(e => e.idEP)) + 1
+              : 1;
+
+            await this.siteRepository.createInventoryEP({
+              siteId,
+              idEP: epItem.idEP || nextIdEP,
+              tipoPiso: epItem.tipoPiso || null,
+              ubicacionEquipo: epItem.ubicacionEquipo || null,
+              situacion: epItem.situacion || 'En servicio',
+              estadoPiso: epItem.estadoPiso || null,
+              modelo: epItem.modelo || null,
+              fabricante: epItem.fabricante || null,
+              usoEP: epItem.usoEP || null,
+              operadorPropietario: epItem.operadorPropietario || null,
+              ancho,
+              profundidad,
+              altura,
+              superficieOcupada: epItem.superficieOcupada,
+              observaciones: epItem.observaciones || null
+            });
+
+            logger.info('Inventory EP element created', {
+              siteId,
+              tipoPiso: epItem.tipoPiso,
+              idEP: epItem.idEP || nextIdEP
+            });
+          }
         } catch (error: any) {
-          logger.error('Error creating inventory EP element', {
+          logger.error('Error syncing inventory EP element', {
             error: error.message,
             epItem
           });

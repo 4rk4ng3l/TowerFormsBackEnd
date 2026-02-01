@@ -150,6 +150,7 @@ export class FormRepository implements IFormRepository {
         stepData.formId,
         stepData.stepNumber,
         stepData.title,
+        stepData.filePrefix || null,
         questions,
         new Date(stepData.createdAt)
       );
@@ -181,7 +182,28 @@ export class FormRepository implements IFormRepository {
       metadataSchema: form.metadataSchema as any,
       sections: form.sections as any,
       createdAt: form.createdAt,
-      updatedAt: form.updatedAt
+      updatedAt: form.updatedAt,
+      steps: {
+        create: form.steps.map(step => ({
+          id: step.id,
+          stepNumber: step.stepNumber,
+          title: step.title,
+          filePrefix: step.filePrefix,
+          createdAt: step.createdAt,
+          questions: {
+            create: step.questions.map(q => ({
+              id: q.id,
+              questionText: q.questionText,
+              type: q.type,
+              options: q.options as any,
+              isRequired: q.isRequired,
+              orderNumber: q.orderNumber,
+              metadata: q.metadata as any,
+              createdAt: q.createdAt
+            }))
+          }
+        }))
+      }
     };
   }
 }

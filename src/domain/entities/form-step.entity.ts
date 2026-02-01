@@ -6,6 +6,7 @@ export class FormStep {
     public readonly formId: string,
     public readonly stepNumber: number,
     public readonly title: string,
+    public readonly filePrefix: string | null,
     public readonly questions: Question[],
     public readonly createdAt: Date
   ) {}
@@ -14,13 +15,15 @@ export class FormStep {
     id: string,
     formId: string,
     stepNumber: number,
-    title: string
+    title: string,
+    filePrefix: string | null = null
   ): FormStep {
     return new FormStep(
       id,
       formId,
       stepNumber,
       title,
+      filePrefix,
       [],
       new Date()
     );
@@ -32,6 +35,7 @@ export class FormStep {
       this.formId,
       this.stepNumber,
       this.title,
+      this.filePrefix,
       [...this.questions, question],
       this.createdAt
     );
