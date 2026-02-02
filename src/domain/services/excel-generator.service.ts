@@ -13,11 +13,219 @@ export interface ExcelExportResult {
   filePath: string;
 }
 
+// ============================================
+// CONFIGURACIÓN DE LAYOUT POR TIPO DE SITIO
+// ============================================
+
+interface ColumnConfig {
+  width: number;
+  header: string;
+}
+
+interface MetadataFieldConfig {
+  key: string;           // Clave en metadata
+  label: string;         // Etiqueta a mostrar
+  column: number;        // Columna (1-9)
+  row: 'first' | 'second'; // Fila de metadata
+  colspan?: number;      // Columnas a combinar
+}
+
+interface SiteTypeConfig {
+  // Colores
+  styles: {
+    primaryColor: string;
+    secondaryColor: string;
+    accentColor: string;
+    textOnPrimary: string;
+  };
+  // Columnas del checklist
+  columns: ColumnConfig[];
+  // Campos de metadata y su ubicación
+  metadataFields: {
+    firstRow: MetadataFieldConfig[];
+    secondRow: MetadataFieldConfig[];
+  };
+  // Título personalizado
+  titlePrefix: string;
+  // Filas del título (altura)
+  titleRows: number;
+}
+
+function getSiteTypeConfig(siteType: string): SiteTypeConfig {
+  const type = siteType?.toUpperCase() || '';
+
+  switch (type) {
+    case 'GREENFIELD':
+      return {
+        styles: {
+          primaryColor: 'FF2E7D32',     // Verde oscuro
+          secondaryColor: 'FFE8F5E9',   // Verde claro
+          accentColor: 'FF4CAF50',      // Verde medio
+          textOnPrimary: 'FFFFFFFF'
+        },
+        columns: [
+          { width: 20, header: 'Actividad' },
+          { width: 30, header: 'Descripción' },
+          { width: 35, header: 'Definición' },
+          { width: 22, header: 'Clasificación Hallazgo' },
+          { width: 15, header: 'Periodicidad' },
+          { width: 25, header: 'Observaciones' },
+          { width: 20, header: '' },
+          { width: 20, header: '' },
+          { width: 20, header: '' }
+        ],
+        metadataFields: {
+          firstRow: [
+            { key: 'codigoSitio', label: 'CÓDIGO DEL SITIO', column: 1, row: 'first' },
+            { key: 'nombreSitio', label: 'NOMBRE SITIO', column: 2, row: 'first', colspan: 2 },
+            { key: 'latitud', label: 'LATITUD', column: 4, row: 'first' },
+            { key: 'longitud', label: 'LONGITUD', column: 5, row: 'first' },
+            { key: 'direccion', label: 'DIRECCIÓN', column: 6, row: 'first', colspan: 3 },
+            { key: 'regional', label: 'REGIONAL', column: 9, row: 'first' }
+          ],
+          secondRow: [
+            { key: 'tipoSitio', label: 'TIPO DE SITIO', column: 1, row: 'second' },
+            { key: 'empresa', label: 'EMPRESA', column: 2, row: 'second' },
+            { key: 'coordinador', label: 'COORDINADOR', column: 3, row: 'second', colspan: 2 },
+            { key: 'fechaEjecucion', label: 'FECHA EJECUCIÓN', column: 5, row: 'second', colspan: 2 },
+            { key: 'numeroTK', label: 'NÚMERO TK', column: 7, row: 'second', colspan: 2 },
+            { key: 'alturaTorre', label: 'ALTURA TORRE', column: 9, row: 'second' }
+          ]
+        },
+        titlePrefix: 'RUTINA MANTENIMIENTO PREVENTIVO GREENFIELD',
+        titleRows: 6
+      };
+
+    case 'ROOFTOP':
+      return {
+        styles: {
+          primaryColor: 'FF1565C0',     // Azul oscuro
+          secondaryColor: 'FFE3F2FD',   // Azul claro
+          accentColor: 'FF2196F3',      // Azul medio
+          textOnPrimary: 'FFFFFFFF'
+        },
+        columns: [
+          { width: 18, header: 'Actividad' },
+          { width: 28, header: 'Descripción' },
+          { width: 30, header: 'Definición' },
+          { width: 20, header: 'Clasificación' },
+          { width: 15, header: 'Periodicidad' },
+          { width: 22, header: 'Observaciones' },
+          { width: 18, header: '' },
+          { width: 18, header: '' },
+          { width: 18, header: '' }
+        ],
+        metadataFields: {
+          firstRow: [
+            { key: 'codigoSitio', label: 'CÓDIGO SITIO', column: 1, row: 'first' },
+            { key: 'nombreSitio', label: 'NOMBRE SITIO', column: 2, row: 'first', colspan: 2 },
+            { key: 'direccion', label: 'DIRECCIÓN EDIFICIO', column: 4, row: 'first', colspan: 3 },
+            { key: 'pisoUbicacion', label: 'PISO/UBICACIÓN', column: 7, row: 'first', colspan: 2 },
+            { key: 'regional', label: 'REGIONAL', column: 9, row: 'first' }
+          ],
+          secondRow: [
+            { key: 'tipoSitio', label: 'TIPO DE SITIO', column: 1, row: 'second' },
+            { key: 'empresa', label: 'EMPRESA', column: 2, row: 'second' },
+            { key: 'coordinador', label: 'COORDINADOR', column: 3, row: 'second', colspan: 2 },
+            { key: 'fechaEjecucion', label: 'FECHA EJECUCIÓN', column: 5, row: 'second', colspan: 2 },
+            { key: 'numeroTK', label: 'NÚMERO TK', column: 7, row: 'second', colspan: 2 },
+            { key: 'propietarioEdificio', label: 'PROPIETARIO', column: 9, row: 'second' }
+          ]
+        },
+        titlePrefix: 'RUTINA MANTENIMIENTO PREVENTIVO ROOFTOP',
+        titleRows: 5
+      };
+
+    case 'POSTEVIA':
+      return {
+        styles: {
+          primaryColor: 'FFE65100',     // Naranja oscuro
+          secondaryColor: 'FFFFF3E0',   // Naranja claro
+          accentColor: 'FFFF9800',      // Naranja medio
+          textOnPrimary: 'FFFFFFFF'
+        },
+        columns: [
+          { width: 18, header: 'Actividad' },
+          { width: 25, header: 'Descripción' },
+          { width: 32, header: 'Definición' },
+          { width: 20, header: 'Clasificación' },
+          { width: 15, header: 'Periodicidad' },
+          { width: 20, header: 'Observaciones' },
+          { width: 18, header: '' },
+          { width: 18, header: '' },
+          { width: 18, header: '' }
+        ],
+        metadataFields: {
+          firstRow: [
+            { key: 'codigoSitio', label: 'CÓDIGO POSTE', column: 1, row: 'first' },
+            { key: 'nombreSitio', label: 'IDENTIFICACIÓN', column: 2, row: 'first', colspan: 2 },
+            { key: 'latitud', label: 'LATITUD', column: 4, row: 'first' },
+            { key: 'longitud', label: 'LONGITUD', column: 5, row: 'first' },
+            { key: 'direccion', label: 'DIRECCIÓN/RUTA', column: 6, row: 'first', colspan: 3 },
+            { key: 'regional', label: 'REGIONAL', column: 9, row: 'first' }
+          ],
+          secondRow: [
+            { key: 'tipoSitio', label: 'TIPO POSTE', column: 1, row: 'second' },
+            { key: 'empresa', label: 'EMPRESA', column: 2, row: 'second' },
+            { key: 'coordinador', label: 'COORDINADOR', column: 3, row: 'second', colspan: 2 },
+            { key: 'fechaEjecucion', label: 'FECHA EJECUCIÓN', column: 5, row: 'second', colspan: 2 },
+            { key: 'numeroTK', label: 'NÚMERO TK', column: 7, row: 'second', colspan: 2 },
+            { key: 'alturaPoste', label: 'ALTURA POSTE', column: 9, row: 'second' }
+          ]
+        },
+        titlePrefix: 'RUTINA MANTENIMIENTO PREVENTIVO POSTEVIA',
+        titleRows: 5
+      };
+
+    default:
+      // Configuración por defecto (original)
+      return {
+        styles: {
+          primaryColor: 'FF4472C4',
+          secondaryColor: 'FFD9E1F2',
+          accentColor: 'FF5B9BD5',
+          textOnPrimary: 'FFFFFFFF'
+        },
+        columns: [
+          { width: 18, header: 'Actividad' },
+          { width: 25, header: 'Descripción' },
+          { width: 35, header: 'Definición' },
+          { width: 20, header: 'Clasificación Hallazgo' },
+          { width: 15, header: 'Periodicidad' },
+          { width: 20, header: 'Observaciones' },
+          { width: 20, header: '' },
+          { width: 20, header: '' },
+          { width: 20, header: '' }
+        ],
+        metadataFields: {
+          firstRow: [
+            { key: 'codigoSitio', label: 'CÓDIGO DEL SITIO', column: 1, row: 'first' },
+            { key: 'nombreSitio', label: 'NOMBRE SITIO', column: 2, row: 'first', colspan: 2 },
+            { key: 'latitud', label: 'LATITUD', column: 4, row: 'first' },
+            { key: 'longitud', label: 'LONGITUD', column: 5, row: 'first' },
+            { key: 'direccion', label: 'DIRECCIÓN', column: 6, row: 'first', colspan: 3 },
+            { key: 'regional', label: 'REGIONAL', column: 9, row: 'first' }
+          ],
+          secondRow: [
+            { key: 'tipoSitio', label: 'TIPO DE SITIO', column: 1, row: 'second' },
+            { key: 'empresa', label: 'EMPRESA', column: 2, row: 'second' },
+            { key: 'coordinador', label: 'COORDINADOR CONTRATISTA', column: 3, row: 'second', colspan: 2 },
+            { key: 'fechaEjecucion', label: 'FECHA DE EJECUCIÓN', column: 5, row: 'second', colspan: 2 },
+            { key: 'numeroTK', label: 'NÚMERO DE TK', column: 7, row: 'second', colspan: 2 }
+          ]
+        },
+        titlePrefix: 'RUTINA MANTENIMIENTO PREVENTIVO',
+        titleRows: 6
+      };
+  }
+}
+
 @injectable()
 export class ExcelGeneratorService {
   private readonly exportsDir: string;
   private readonly baseUrl: string;
   private readonly siteRepository: SiteRepository;
+  private currentConfig: SiteTypeConfig = getSiteTypeConfig('');
 
   constructor() {
     this.exportsDir = process.env.EXPORTS_DIR || './uploads/exports';
@@ -37,11 +245,15 @@ export class ExcelGeneratorService {
     workbook.creator = 'TowerForms';
     workbook.created = new Date();
 
+    // Set config based on site type
+    const metadata = data.submission.metadata || {};
+    const siteType = metadata.tipoSitio || metadata.siteType || '';
+    this.currentConfig = getSiteTypeConfig(siteType);
+
     // Create main sheet following original format
     await this.createMainSheet(workbook, data);
 
     // Add inventory sheets if site code is available in metadata
-    const metadata = data.submission.metadata || {};
     const codigoSitio = metadata.codigoSitio || metadata.siteCode;
 
     if (codigoSitio) {
@@ -100,109 +312,58 @@ export class ExcelGeneratorService {
 
   private async createMainSheet(workbook: ExcelJS.Workbook, data: SubmissionForExport): Promise<void> {
     const sheet = workbook.addWorksheet('Rutina Mantenimiento');
+    const config = this.currentConfig;
 
-    // Set column widths (9 columns like original)
-    sheet.columns = [
-      { width: 18 },  // A - Actividad
-      { width: 25 },  // B - Descripcion
-      { width: 35 },  // C - Definicion
-      { width: 20 },  // D - Clasificacion
-      { width: 15 },  // E - Periodicidad
-      { width: 20 },  // F - Observaciones (start)
-      { width: 20 },  // G - Observaciones (cont)
-      { width: 20 },  // H - Observaciones (cont)
-      { width: 20 },  // I - Observaciones (end)
-    ];
+    // Set column widths from config
+    sheet.columns = config.columns.map(col => ({ width: col.width }));
 
     let currentRow = 1;
 
     // ============================================
-    // SECTION 1: HEADER - Title (6 rows merged)
+    // SECTION 1: HEADER - Title (dynamic rows)
     // ============================================
-    const titleText = `RUTINA MANTENIMIENTO PREVENTIVO - ${data.form.name.toUpperCase()}`;
+    const titleText = `${config.titlePrefix} - ${data.form.name.toUpperCase()}`;
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < config.titleRows; i++) {
       const row = sheet.getRow(currentRow + i);
       row.getCell(1).value = titleText;
       row.height = 20;
     }
 
-    sheet.mergeCells(`A1:I6`);
+    sheet.mergeCells(`A1:I${config.titleRows}`);
     const titleCell = sheet.getCell('A1');
-    titleCell.font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+    titleCell.font = { bold: true, size: 16, color: { argb: config.styles.textOnPrimary } };
     titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
     titleCell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF4472C4' }
+      fgColor: { argb: config.styles.primaryColor }
     };
 
-    currentRow = 7;
+    currentRow = config.titleRows + 1;
 
     // Empty row
     currentRow++;
 
     // ============================================
-    // SECTION 2: METADATA - Site Information
+    // SECTION 2: METADATA - Dynamic from config
     // ============================================
-
-    // Row with labels: CÓDIGO DEL SITIO, NOMBRE SITIO, LATITUD, LONGITUD, DIRECCION, REGIONAL
-    const metaLabels1 = sheet.getRow(currentRow);
-    metaLabels1.values = ['CÓDIGO DEL SITIO', 'NOMBRE SITIO', 'NOMBRE SITIO', 'LATITUD', 'LONGITUD', 'DIRECCION', 'DIRECCION', 'DIRECCION', 'REGIONAL'];
-    this.styleHeaderRow(metaLabels1);
-    sheet.mergeCells(`B${currentRow}:C${currentRow}`);
-    sheet.mergeCells(`F${currentRow}:H${currentRow}`);
-    currentRow++;
-
-    // Row with values from metadata
     const metadata = data.submission.metadata || {};
-    const metaValues1 = sheet.getRow(currentRow);
-    metaValues1.values = [
-      metadata.codigoSitio || metadata.siteCode || 'N/A',
-      metadata.nombreSitio || metadata.siteName || 'N/A',
-      metadata.nombreSitio || metadata.siteName || '',
-      metadata.latitud || metadata.latitude || 'N/A',
-      metadata.longitud || metadata.longitude || 'N/A',
-      metadata.direccion || metadata.address || 'N/A',
-      metadata.direccion || metadata.address || '',
-      metadata.direccion || metadata.address || '',
-      metadata.regional || metadata.region || 'N/A'
-    ];
-    this.styleDataRow(metaValues1);
-    sheet.mergeCells(`B${currentRow}:C${currentRow}`);
-    sheet.mergeCells(`F${currentRow}:H${currentRow}`);
-    currentRow++;
+
+    // First row of metadata - Labels
+    currentRow = this.renderMetadataRow(sheet, currentRow, config.metadataFields.firstRow, metadata, data, true);
+
+    // First row of metadata - Values
+    currentRow = this.renderMetadataRow(sheet, currentRow, config.metadataFields.firstRow, metadata, data, false);
 
     // Empty row
     currentRow++;
 
-    // Row with labels: TIPO DE SITIO, EMPRESA, COORDINADOR CONTRATISTA, FECHA DE EJECUCION, NUMERO DE TK
-    const metaLabels2 = sheet.getRow(currentRow);
-    metaLabels2.values = ['TIPO DE SITIO', 'EMPRESA', 'COORDINADOR CONTRATISTA', 'COORDINADOR CONTRATISTA', 'FECHA DE EJECUCION', 'FECHA DE EJECUCION', 'NUMERO DE TK', 'NUMERO DE TK', ''];
-    this.styleHeaderRow(metaLabels2);
-    sheet.mergeCells(`C${currentRow}:D${currentRow}`);
-    sheet.mergeCells(`E${currentRow}:F${currentRow}`);
-    sheet.mergeCells(`G${currentRow}:H${currentRow}`);
-    currentRow++;
+    // Second row of metadata - Labels
+    currentRow = this.renderMetadataRow(sheet, currentRow, config.metadataFields.secondRow, metadata, data, true);
 
-    // Row with values
-    const metaValues2 = sheet.getRow(currentRow);
-    metaValues2.values = [
-      metadata.tipoSitio || metadata.siteType || 'N/A',
-      metadata.empresa || metadata.company || 'IENERCOM',
-      metadata.coordinador || metadata.coordinator || `${data.user.firstName} ${data.user.lastName}`,
-      '',
-      this.formatDateTime(data.submission.completedAt || data.submission.startedAt),
-      '',
-      metadata.numeroTK || metadata.ticketNumber || 'N/A',
-      '',
-      ''
-    ];
-    this.styleDataRow(metaValues2);
-    sheet.mergeCells(`C${currentRow}:D${currentRow}`);
-    sheet.mergeCells(`E${currentRow}:F${currentRow}`);
-    sheet.mergeCells(`G${currentRow}:H${currentRow}`);
-    currentRow++;
+    // Second row of metadata - Values
+    currentRow = this.renderMetadataRow(sheet, currentRow, config.metadataFields.secondRow, metadata, data, false);
 
     // Empty row
     currentRow++;
@@ -234,15 +395,15 @@ export class ExcelGeneratorService {
     // SECTION 4: CHECKLIST DE ACTIVIDADES
     // ============================================
 
-    // Header row for checklist
+    // Header row for checklist - use headers from config
     const checklistHeader = sheet.getRow(currentRow);
-    checklistHeader.values = ['Actividad', 'Descripción', 'DEFINICION', 'CLASIFICACIÓN HALLAZGO', 'PERIODICIDAD', 'OBSERVACIONES', '', '', ''];
+    checklistHeader.values = config.columns.map(col => col.header);
     this.styleHeaderRow(checklistHeader);
-    checklistHeader.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+    checklistHeader.font = { bold: true, size: 11, color: { argb: config.styles.textOnPrimary } };
     checklistHeader.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF4472C4' }
+      fgColor: { argb: config.styles.primaryColor }
     };
     sheet.mergeCells(`F${currentRow}:I${currentRow}`);
     currentRow++;
@@ -335,7 +496,7 @@ export class ExcelGeneratorService {
     row.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFD9E1F2' }
+      fgColor: { argb: this.currentConfig.styles.secondaryColor }
     };
     row.eachCell((cell) => {
       cell.border = this.getThinBorder();
@@ -349,6 +510,98 @@ export class ExcelGeneratorService {
     row.eachCell((cell) => {
       cell.border = this.getThinBorder();
     });
+  }
+
+  private renderMetadataRow(
+    sheet: ExcelJS.Worksheet,
+    currentRow: number,
+    fields: MetadataFieldConfig[],
+    metadata: any,
+    data: SubmissionForExport,
+    isLabel: boolean
+  ): number {
+    const row = sheet.getRow(currentRow);
+    const values: (string | number)[] = ['', '', '', '', '', '', '', '', ''];
+    const merges: { start: number; end: number }[] = [];
+
+    for (const field of fields) {
+      const col = field.column - 1; // 0-indexed
+
+      if (isLabel) {
+        values[col] = field.label;
+      } else {
+        // Get value from metadata or special fields
+        let value = this.getMetadataValue(field.key, metadata, data);
+        values[col] = value;
+      }
+
+      // Track merges
+      if (field.colspan && field.colspan > 1) {
+        merges.push({ start: field.column, end: field.column + field.colspan - 1 });
+        // Fill colspan cells with same value for merge
+        for (let i = 1; i < field.colspan; i++) {
+          values[col + i] = values[col];
+        }
+      }
+    }
+
+    row.values = values;
+
+    if (isLabel) {
+      this.styleHeaderRow(row);
+    } else {
+      this.styleDataRow(row);
+    }
+
+    // Apply merges
+    for (const merge of merges) {
+      const startCol = String.fromCharCode(64 + merge.start);
+      const endCol = String.fromCharCode(64 + merge.end);
+      sheet.mergeCells(`${startCol}${currentRow}:${endCol}${currentRow}`);
+    }
+
+    return currentRow + 1;
+  }
+
+  private getMetadataValue(key: string, metadata: any, data: SubmissionForExport): string {
+    // Map of alternative keys for each field
+    const keyMappings: Record<string, string[]> = {
+      codigoSitio: ['codigoSitio', 'siteCode', 'codigo'],
+      nombreSitio: ['nombreSitio', 'siteName', 'nombre'],
+      latitud: ['latitud', 'latitude', 'lat'],
+      longitud: ['longitud', 'longitude', 'lng', 'lon'],
+      direccion: ['direccion', 'address', 'dir'],
+      regional: ['regional', 'region'],
+      tipoSitio: ['tipoSitio', 'siteType', 'tipo'],
+      empresa: ['empresa', 'company'],
+      coordinador: ['coordinador', 'coordinator'],
+      numeroTK: ['numeroTK', 'ticketNumber', 'tk'],
+      alturaTorre: ['alturaTorre', 'towerHeight', 'altura'],
+      alturaPoste: ['alturaPoste', 'poleHeight'],
+      pisoUbicacion: ['pisoUbicacion', 'floorLocation', 'piso'],
+      propietarioEdificio: ['propietarioEdificio', 'buildingOwner', 'propietario']
+    };
+
+    const alternatives = keyMappings[key] || [key];
+
+    for (const alt of alternatives) {
+      if (metadata[alt] !== undefined && metadata[alt] !== null && metadata[alt] !== '') {
+        return String(metadata[alt]);
+      }
+    }
+
+    // Special cases
+    if (key === 'coordinador') {
+      return `${data.user.firstName} ${data.user.lastName}`;
+    }
+    if (key === 'fechaEjecucion') {
+      return this.formatDateTime(data.submission.completedAt || data.submission.startedAt);
+    }
+    if (key === 'empresa') {
+      return 'IENERCOM';
+    }
+
+    return 'N/A';
   }
 
   private getThinBorder(): Partial<ExcelJS.Borders> {
@@ -491,11 +744,11 @@ export class ExcelGeneratorService {
     const titleRow = sheet.getRow(1);
     titleRow.getCell(1).value = `INVENTARIO ELEMENTOS EN ESTRUCTURA - ${codigoSitio}`;
     sheet.mergeCells('A1:M1');
-    titleRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    titleRow.font = { bold: true, size: 14, color: { argb: this.currentConfig.styles.textOnPrimary } };
     titleRow.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF4472C4' }
+      fgColor: { argb: this.currentConfig.styles.primaryColor }
     };
     titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
     titleRow.height = 30;
@@ -521,7 +774,7 @@ export class ExcelGeneratorService {
     headerRow.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFD9E1F2' }
+      fgColor: { argb: this.currentConfig.styles.secondaryColor }
     };
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
     headerRow.eachCell((cell) => {
@@ -601,11 +854,11 @@ export class ExcelGeneratorService {
     const titleRow = sheet.getRow(1);
     titleRow.getCell(1).value = `INVENTARIO EQUIPOS EN PISO - ${codigoSitio}`;
     sheet.mergeCells('A1:N1');
-    titleRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    titleRow.font = { bold: true, size: 14, color: { argb: this.currentConfig.styles.textOnPrimary } };
     titleRow.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF4472C4' }
+      fgColor: { argb: this.currentConfig.styles.primaryColor }
     };
     titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
     titleRow.height = 30;
@@ -632,7 +885,7 @@ export class ExcelGeneratorService {
     headerRow.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFD9E1F2' }
+      fgColor: { argb: this.currentConfig.styles.secondaryColor }
     };
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
     headerRow.eachCell((cell) => {
@@ -726,11 +979,11 @@ export class ExcelGeneratorService {
     const titleRow = sheet.getRow(1);
     titleRow.getCell(1).value = `PRUEBAS DE TORQUE - ${codigoSitio}`;
     sheet.mergeCells('A1:G1');
-    titleRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    titleRow.font = { bold: true, size: 14, color: { argb: this.currentConfig.styles.textOnPrimary } };
     titleRow.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF4472C4' }
+      fgColor: { argb: this.currentConfig.styles.primaryColor }
     };
     titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
     titleRow.height = 30;
@@ -770,7 +1023,7 @@ export class ExcelGeneratorService {
     refColHeaders.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFD9E1F2' }
+      fgColor: { argb: this.currentConfig.styles.secondaryColor }
     };
     sheet.mergeCells(`C${currentRow}:G${currentRow}`);
     currentRow++;
@@ -798,11 +1051,11 @@ export class ExcelGeneratorService {
       'No Pasan',
       '% Cumplimiento'
     ];
-    headerRow.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+    headerRow.font = { bold: true, size: 10, color: { argb: this.currentConfig.styles.textOnPrimary } };
     headerRow.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF4472C4' }
+      fgColor: { argb: this.currentConfig.styles.primaryColor }
     };
     headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
     headerRow.eachCell((cell) => {
@@ -923,7 +1176,7 @@ export class ExcelGeneratorService {
     summaryHeaderRow.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFD9E1F2' }
+      fgColor: { argb: this.currentConfig.styles.secondaryColor }
     };
     summaryHeaderRow.alignment = { vertical: 'middle', horizontal: 'center' };
     currentRow++;
