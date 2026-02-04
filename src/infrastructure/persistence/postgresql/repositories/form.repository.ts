@@ -136,6 +136,7 @@ export class FormRepository implements IFormRepository {
           questionData.id,
           questionData.stepId,
           questionData.questionText,
+          questionData.questionDescription || null,
           questionData.type as QuestionType,
           questionData.options ? JSON.parse(JSON.stringify(questionData.options)) : null,
           questionData.isRequired,
@@ -194,6 +195,7 @@ export class FormRepository implements IFormRepository {
             create: step.questions.map(q => ({
               id: q.id,
               questionText: q.questionText,
+              questionDescription: q.questionDescription,
               type: q.type,
               options: q.options as any,
               isRequired: q.isRequired,

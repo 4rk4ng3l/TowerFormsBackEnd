@@ -674,7 +674,10 @@ export class ExcelGeneratorService {
   }
 
   private getDefinicion(question: any): string {
-    // The definition could come from question metadata or be the question text itself
+    // Priority: 1) question.description, 2) metadata.definicion, 3) question.text
+    if (question.description) {
+      return question.description;
+    }
     if (question.metadata?.definicion) {
       return question.metadata.definicion;
     }

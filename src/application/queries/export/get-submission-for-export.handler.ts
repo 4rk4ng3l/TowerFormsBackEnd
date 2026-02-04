@@ -34,6 +34,7 @@ export interface SubmissionForExport {
       questions: Array<{
         id: string;
         text: string;
+        description: string | null;
         type: string;
         required: boolean;
         options: string[] | null;
@@ -124,6 +125,7 @@ export class GetSubmissionForExportHandler
           questions: step.questions.map(q => ({
             id: q.id,
             text: q.questionText,
+            description: q.questionDescription,
             type: q.type.toString(),
             required: q.isRequired,
             options: q.options,

@@ -34,6 +34,7 @@ export class CreateFormHandler implements ICommandHandler<CreateFormCommand, For
           questionId,
           stepId,
           questionDto.questionText,
+          questionDto.questionDescription || null,
           questionDto.type as QuestionType,
           questionDto.options || null,
           questionDto.isRequired,

@@ -164,15 +164,16 @@ model FormStep {
 }
 
 model Question {
-  id           String   @id @default(uuid())
-  stepId       String   @map("step_id")
-  questionText String   @map("question_text") @db.Text
-  type         String   @db.VarChar(50) // 'text', 'multiple_choice', 'single_choice', 'number', 'date', 'time', 'file_upload'
-  options      Json?    // JSON array for multiple choice options
-  isRequired   Boolean  @default(false) @map("is_required")
-  orderNumber  Int      @map("order_number")
-  metadata     Json?    // Additional metadata: validation rules, units, placeholders, file types, etc. {unit: "ohms", maxValue: 5, fileTypes: ["image/*", "video/*"]}
-  createdAt    DateTime @default(now()) @map("created_at")
+  id                  String   @id @default(uuid())
+  stepId              String   @map("step_id")
+  questionText        String   @map("question_text") @db.Text
+  questionDescription String?  @map("question_description") @db.VarChar(200)
+  type                String   @db.VarChar(50) // 'text', 'multiple_choice', 'single_choice', 'number', 'date', 'time', 'file_upload'
+  options             Json?    // JSON array for multiple choice options
+  isRequired          Boolean  @default(false) @map("is_required")
+  orderNumber         Int      @map("order_number")
+  metadata            Json?    // Additional metadata: validation rules, units, placeholders, file types, etc. {unit: "ohms", maxValue: 5, fileTypes: ["image/*", "video/*"]}
+  createdAt           DateTime @default(now()) @map("created_at")
 
   step    FormStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
   answers Answer[]

@@ -10,6 +10,7 @@ export interface CreateFormStepDto {
 
 export interface CreateQuestionDto {
   questionText: string;
+  questionDescription?: string | null;
   type: 'text' | 'multiple_choice' | 'single_choice';
   options?: string[];
   isRequired: boolean;
